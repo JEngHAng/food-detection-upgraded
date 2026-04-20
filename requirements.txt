@@ -1,0 +1,26 @@
+# ══════════════════════════════════════════════════════
+# requirements.txt — Raspberry Pi 5 only
+#
+# ติดตั้งทั้งหมดด้วยคำสั่งเดียว:
+#   pip install -r requirements.txt --break-system-packages
+# ══════════════════════════════════════════════════════
+
+# Web Framework
+flask>=3.0.0
+flask-cors>=4.0.0
+
+# AI / Computer Vision
+opencv-python-headless>=4.9.0
+numpy>=1.26.0
+ultralytics>=8.2.0
+
+# Config
+python-dotenv>=1.0.0
+
+# Load Cell HX711
+hx711>=1.1.2
+RPi.GPIO
+
+# Testing
+pytest>=8.0.0
+pytest-cov>=5.0.0

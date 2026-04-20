@@ -1,0 +1,132 @@
+{
+  "_comment": "เมนูอาหาร — key ต้องตรงกับ class name ใน best.pt ทุกตัว",
+  "_format": "class_name: { name_th, name_en, price (บาท), unit }",
+
+  "boiled_chicken": {
+    "name_th": "ไก่ต้ม",
+    "name_en": "Boiled Chicken",
+    "price": 25,
+    "unit": "ชิ้น"
+  },
+  "boiled_chicken_blood_jelly": {
+    "name_th": "เลือดไก่",
+    "name_en": "Chicken Blood Jelly",
+    "price": 10,
+    "unit": "ชิ้น"
+  },
+  "boiled_egg": {
+    "name_th": "ไข่ต้ม",
+    "name_en": "Boiled Egg",
+    "price": 10,
+    "unit": "ฟอง"
+  },
+  "chainese_sausage": {
+    "name_th": "กุนเชียง",
+    "name_en": "Chinese Sausage",
+    "price": 20,
+    "unit": "ชิ้น"
+  },
+  "chicken_drumstick": {
+    "name_th": "น่องไก่",
+    "name_en": "Chicken Drumstick",
+    "price": 30,
+    "unit": "ชิ้น"
+  },
+  "chicken_rice": {
+    "name_th": "ข้าวมันไก่",
+    "name_en": "Khao Man Gai",
+    "price": 50,
+    "unit": "จาน"
+  },
+  "chicken_shredded": {
+    "name_th": "ไก่ฉีก",
+    "name_en": "Shredded Chicken",
+    "price": 25,
+    "unit": "ช้อน"
+  },
+  "crispy_pork": {
+    "name_th": "หมูกรอบ",
+    "name_en": "Crispy Pork",
+    "price": 30,
+    "unit": "ช้อน"
+  },
+  "cucumber": {
+    "name_th": "แตงกวา",
+    "name_en": "Cucumber",
+    "price": 5,
+    "unit": "ชิ้น"
+  },
+  "daikon_radish": {
+    "name_th": "หัวไชเท้า",
+    "name_en": "Daikon Radish",
+    "price": 5,
+    "unit": "ชิ้น"
+  },
+  "fried_chicken": {
+    "name_th": "ไก่ทอด",
+    "name_en": "Fried Chicken",
+    "price": 30,
+    "unit": "ชิ้น"
+  },
+  "grilled_chicken": {
+    "name_th": "ไก่ย่าง",
+    "name_en": "Grilled Chicken",
+    "price": 30,
+    "unit": "ชิ้น"
+  },
+  "fried_tofo": {
+    "name_th": "เต้าหู้ทอด",
+    "name_en": "Fried Tofu",
+    "price": 10,
+    "unit": "ชิ้น"
+  },
+  "minced_pork": {
+    "name_th": "หมูสับ",
+    "name_en": "Minced Pork",
+    "price": 25,
+    "unit": "ช้อน"
+  },
+  "noodle": {
+    "name_th": "ก๋วยเตี๋ยว",
+    "name_en": "Noodle",
+    "price": 45,
+    "unit": "ชาม"
+  },
+  "red_pork": {
+    "name_th": "หมูแดง",
+    "name_en": "Red Pork",
+    "price": 30,
+    "unit": "ช้อน"
+  },
+  "red_pork_and_crispy_pork": {
+    "name_th": "หมูแดงกับหมูกรอบ",
+    "name_en": "Red Pork & Crispy Pork",
+    "price": 55,
+    "unit": "ช้อน"
+  },
+  "rice": {
+    "name_th": "ข้าว",
+    "name_en": "Rice",
+    "price": 10,
+    "unit": "ทัพพี"
+  },
+  "basil_leaf": {
+    "name_th": "ใบกะเพรา",
+    "name_en": "Basil Leaf",
+    "price": 0,
+    "unit": "ส่วน"
+  },
+  "stir_fried_basil": {
+    "name_th": "ผัดกะเพรา",
+    "name_en": "Stir-fried Basil",
+    "price": 50,
+    "unit": "จาน"
+  },
+
+  "unknown": {
+    "name_th": "ไม่ทราบชื่อ",
+    "name_en": "Unknown",
+    "price": 0,
+    "unit": "รายการ"
+  }
+}

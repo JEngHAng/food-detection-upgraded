@@ -1,0 +1,38 @@
+# .gitignore
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+venv/
+.venv/
+*.egg-info/
+
+# Environment
+.env
+
+# Database
+*.db
+*.db-wal
+*.db-shm
+
+# Uploads (ภาพที่ผู้ใช้อัปโหลด)
+uploads/
+
+# Logs
+logs/
+
+# Model weights (ขนาดใหญ่ — ใช้ Git LFS หรือแชร์แยก)
+models/best.pt
+models/*.pt
+models/*.onnx
+
+# Test artifacts
+.pytest_cache/
+.coverage
+htmlcov/
+
+# IDE
+.vscode/settings.json
+.idea/
+*.swp

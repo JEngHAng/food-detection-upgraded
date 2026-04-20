@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Food AI — ประวัติการตรวจจับ</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:      #0d1117;
+  --surface: #161b22;
+  --surface2:#21262d;
+  --border:  #30363d;
+  --text:    #e6edf3;
+  --muted:   #7d8590;
+  --green:   #3fb950;
+  --blue:    #58a6ff;
+  --orange:  #f0883e;
+  --red:     #f85149;
+  --yellow:  #d29922;
+  --purple:  #bc8cff;
+  --font-th: 'IBM Plex Sans Thai', sans-serif;
+  --font-mono:'Space Mono', monospace;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { background: var(--bg); color: var(--text); font-family: var(--font-th); min-height: 100vh; }
+
+/* ── Header ── */
+.header {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 16px 28px;
+  display: flex; align-items: center; justify-content: space-between;
+  position: sticky; top: 0; z-index: 50;
+}
+.header-title { font-size: 1rem; font-weight: 700; display: flex; align-items: center; gap: 10px; }
+.header-back {
+  display: flex; align-items: center; gap: 6px;
+  color: var(--blue); font-size: .78rem; text-decoration: none;
+  font-family: var(--font-mono);
+  padding: 6px 12px; border: 1px solid rgba(88,166,255,.3);
+  border-radius: 6px; transition: background .15s;
+}
+.header-back:hover { background: rgba(88,166,255,.08); }
+
+/* ── Layout ── */
+.page { max-width: 1100px; margin: 0 auto; padding: 24px 20px 60px; }
+
+/* ── Stats row ── */
+.stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 24px; }
+@media(max-width:640px){ .stats { grid-template-columns: 1fr 1fr; } }
+.stat-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 10px; padding: 16px;
+}
+.stat-label { font-size: .65rem; color: var(--muted); letter-spacing: .1em; text-transform: uppercase; font-family: var(--font-mono); margin-bottom: 6px; }
+.stat-value { font-size: 1.6rem; font-weight: 700; font-family: var(--font-mono); }
+.stat-sub   { font-size: .68rem; color: var(--muted); margin-top: 2px; }
+.c-green  { color: var(--green); }
+.c-blue   { color: var(--blue); }
+.c-orange { color: var(--orange); }
+.c-yellow { color: var(--yellow); }
+
+/* ── Toolbar ── */
+.toolbar {
+  display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; align-items: center;
+}
+.search-wrap {
+  flex: 1; min-width: 180px;
+  position: relative;
+}
+.search-wrap svg { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--muted); }
+.search-input {
+  width: 100%; padding: 9px 12px 9px 34px;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 8px; color: var(--text); font-family: var(--font-th); font-size: .82rem;
+  outline: none; transition: border-color .15s;
+}
+.search-input:focus { border-color: var(--blue); }
+.search-input::placeholder { color: var(--muted); }
+.btn {
+  padding: 8px 16px; border-radius: 8px; font-size: .78rem;
+  cursor: pointer; font-family: var(--font-th); font-weight: 500;
+  display: flex; align-items: center; gap: 6px; transition: all .15s;
+  white-space: nowrap;
+}
+.btn-ghost { background: var(--surface); border: 1px solid var(--border); color: var(--muted); }
+.btn-ghost:hover { border-color: var(--blue); color: var(--blue); }
+.btn-danger { background: rgba(248,81,73,.1); border: 1px solid rgba(248,81,73,.3); color: var(--red); }
+.btn-danger:hover { background: rgba(248,81,73,.2); }
+
+/* ── Table ── */
+.table-wrap {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 10px; overflow: hidden;
+}
+table { width: 100%; border-collapse: collapse; font-size: .8rem; }
+thead th {
+  padding: 11px 14px; text-align: left;
+  font-size: .65rem; text-transform: uppercase; letter-spacing: .1em;
+  color: var(--muted); background: var(--surface2);
+  border-bottom: 1px solid var(--border); font-family: var(--font-mono);
+  cursor: pointer; user-select: none; white-space: nowrap;
+}
+thead th:hover { color: var(--text); }
+thead th .sort-icon { opacity: .4; margin-left: 4px; }
+thead th.sorted .sort-icon { opacity: 1; color: var(--blue); }
+tbody tr { border-bottom: 1px solid rgba(48,54,61,.6); transition: background .1s; }
+tbody tr:last-child { border-bottom: none; }
+tbody tr:hover { background: var(--surface2); }
+tbody td { padding: 10px 14px; vertical-align: middle; }
+
+.session-id   { font-family: var(--font-mono); font-size: .72rem; color: var(--blue); }
+.date-cell    { font-size: .75rem; color: var(--muted); white-space: nowrap; }
+.items-cell   { display: flex; gap: 4px; flex-wrap: wrap; }
+.food-tag {
+  padding: 2px 8px; border-radius: 4px; font-size: .65rem;
+  background: rgba(88,166,255,.1); color: var(--blue);
+  border: 1px solid rgba(88,166,255,.2); white-space: nowrap;
+}
+.weight-cell  { font-family: var(--font-mono); font-size: .78rem; color: var(--muted); }
+.price-cell   { font-family: var(--font-mono); font-size: .88rem; color: var(--green); font-weight: 600; }
+.action-cell  { display: flex; gap: 6px; }
+.btn-sm {
+  padding: 4px 10px; border-radius: 5px; font-size: .68rem;
+  cursor: pointer; font-family: var(--font-th); display: flex; align-items: center; gap: 4px;
+  transition: all .15s; border: 1px solid;
+}
+.btn-view   { background: rgba(88,166,255,.08); color: var(--blue); border-color: rgba(88,166,255,.25); }
+.btn-view:hover { background: rgba(88,166,255,.18); }
+.btn-del    { background: rgba(248,81,73,.08); color: var(--red); border-color: rgba(248,81,73,.2); }
+.btn-del:hover  { background: rgba(248,81,73,.18); }
+
+/* ── Pagination ── */
+.pagination {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 16px; border-top: 1px solid var(--border);
+  font-size: .75rem; color: var(--muted); flex-wrap: wrap; gap: 8px;
+}
+.page-btns { display: flex; gap: 6px; }
+.page-btn {
+  padding: 5px 11px; border-radius: 6px; cursor: pointer;
+  background: var(--surface2); border: 1px solid var(--border);
+  color: var(--text); font-size: .72rem; font-family: var(--font-mono);
+  transition: all .15s;
+}
+.page-btn:hover:not(:disabled) { border-color: var(--blue); color: var(--blue); }
+.page-btn:disabled { opacity: .35; cursor: default; }
+.page-btn.active { background: var(--blue); border-color: var(--blue); color: #000; font-weight: 700; }
+
+/* ── Empty state ── */
+.empty-state {
+  padding: 60px 20px; text-align: center; color: var(--muted);
+}
+.empty-state svg { margin-bottom: 12px; opacity: .3; }
+.empty-state p { font-size: .85rem; }
+
+/* ── Detail Modal ── */
+.modal-backdrop {
+  display: none; position: fixed; inset: 0; z-index: 100;
+  background: rgba(0,0,0,.7); backdrop-filter: blur(4px);
+  align-items: center; justify-content: center; padding: 20px;
+}
+.modal-backdrop.show { display: flex; }
+.modal {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 12px; width: 100%; max-width: 560px;
+  max-height: 85vh; overflow-y: auto; overflow-x: hidden;
+  box-shadow: 0 24px 64px rgba(0,0,0,.6);
+}
+.modal-head {
+  padding: 16px 20px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+  position: sticky; top: 0; background: var(--surface); z-index: 1;
+}
+.modal-head h2 { font-size: .9rem; font-weight: 600; }
+.modal-close {
+  width: 28px; height: 28px; border-radius: 6px; cursor: pointer;
+  background: var(--surface2); border: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--muted); font-size: 1rem; transition: all .15s;
+}
+.modal-close:hover { color: var(--text); border-color: var(--text); }
+.modal-body { padding: 18px 20px; }
+
+.detail-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 8px 0; border-bottom: 1px solid rgba(48,54,61,.5); font-size: .8rem;
+}
+.detail-row:last-child { border-bottom: none; }
+.detail-key   { color: var(--muted); font-family: var(--font-mono); font-size: .72rem; }
+.detail-value { color: var(--text); font-weight: 500; }
+
+.items-detail-table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: .78rem; }
+.items-detail-table th {
+  padding: 7px 10px; font-size: .62rem; text-transform: uppercase;
+  letter-spacing: .08em; color: var(--muted); border-bottom: 1px solid var(--border);
+  text-align: left; font-family: var(--font-mono);
+}
+.items-detail-table td { padding: 8px 10px; border-bottom: 1px solid rgba(48,54,61,.4); }
+.items-detail-table tr:last-child td { border-bottom: none; }
+.conf-badge {
+  display: inline-block; padding: 1px 7px; border-radius: 4px; font-size: .65rem;
+  font-family: var(--font-mono); background: rgba(63,185,80,.1);
+  color: var(--green); border: 1px solid rgba(63,185,80,.2);
+}
+
+/* ── Loading ── */
+.loader { display: none; text-align: center; padding: 40px; color: var(--muted); font-size: .82rem; }
+.spinner {
+  width: 28px; height: 28px; border-radius: 50%; margin: 0 auto 12px;
+  border: 2px solid var(--surface2); border-top-color: var(--blue);
+  animation: spin .75s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── Toast ── */
+#toast {
+  position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(10px);
+  background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
+  padding: 9px 18px; font-size: .78rem; opacity: 0; pointer-events: none;
+  transition: opacity .25s, transform .25s; z-index: 200;
+}
+#toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+#toast.ok  { border-color: rgba(63,185,80,.4); color: var(--green); }
+#toast.err { border-color: rgba(248,81,73,.4); color: var(--red); }
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="header">
+  <div class="header-title">
+    🗄️ ประวัติการตรวจจับอาหาร
+  </div>
+  <a href="/" class="header-back">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <polyline points="15 18 9 12 15 6"/>
+    </svg>
+    กลับหน้าหลัก
+  </a>
+</div>
+
+<!-- Page -->
+<div class="page">
+
+  <!-- Stats -->
+  <div class="stats">
+    <div class="stat-card">
+      <div class="stat-label">ทั้งหมด</div>
+      <div class="stat-value c-blue" id="s-total">—</div>
+      <div class="stat-sub">sessions</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">รายได้รวม</div>
+      <div class="stat-value c-green" id="s-revenue">—</div>
+      <div class="stat-sub">บาท</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">เมนูยอดนิยม</div>
+      <div class="stat-value c-orange" id="s-top" style="font-size:1rem;padding-top:6px;">—</div>
+      <div class="stat-sub" id="s-top-count"></div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">เฉลี่ย/ครั้ง</div>
+      <div class="stat-value c-yellow" id="s-avg">—</div>
+      <div class="stat-sub">บาท</div>
+    </div>
+  </div>
+
+  <!-- Toolbar -->
+  <div class="toolbar">
+    <div class="search-wrap">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+      </svg>
+      <input class="search-input" id="search-input" type="text"
+             placeholder="ค้นหา session ID หรือชื่อเมนู..." autocomplete="off">
+    </div>
+    <button class="btn btn-ghost" onclick="loadHistory()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/>
+      </svg>
+      รีเฟรช
+    </button>
+    <button class="btn btn-ghost" onclick="exportCSV()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+        <polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+      </svg>
+      Export CSV
+    </button>
+  </div>
+
+  <!-- Table -->
+  <div class="table-wrap">
+    <div class="loader" id="loader">
+      <div class="spinner"></div>
+      กำลังโหลดข้อมูล...
+    </div>
+
+    <table id="history-table">
+      <thead>
+        <tr>
+          <th onclick="sortBy('id')" id="th-id">
+            # <span class="sort-icon">↕</span>
+          </th>
+          <th onclick="sortBy('created_at')" id="th-date" class="sorted">
+            วันเวลา <span class="sort-icon">↓</span>
+          </th>
+          <th>รายการอาหาร</th>
+          <th onclick="sortBy('item_count')" id="th-items">
+            จำนวน <span class="sort-icon">↕</span>
+          </th>
+          <th onclick="sortBy('weight_grams')" id="th-weight">
+            น้ำหนัก <span class="sort-icon">↕</span>
+          </th>
+          <th onclick="sortBy('total_price')" id="th-price">
+            ราคา <span class="sort-icon">↕</span>
+          </th>
+          <th>จัดการ</th>
+        </tr>
+      </thead>
+      <tbody id="history-tbody"></tbody>
+    </table>
+
+    <div class="empty-state" id="empty-state" style="display:none">
+      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2">
+        <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+        <polyline points="14 2 14 8 20 8"/>
+      </svg>
+      <p>ยังไม่มีข้อมูล<br>เริ่มต้นตรวจจับอาหารเพื่อบันทึกข้อมูล</p>
+    </div>
+
+    <div class="pagination" id="pagination"></div>
+  </div>
+
+</div>
+
+<!-- Detail Modal -->
+<div class="modal-backdrop" id="modal" onclick="closeModal(event)">
+  <div class="modal" id="modal-box">
+    <div class="modal-head">
+      <h2 id="modal-title">รายละเอียด Session</h2>
+      <div class="modal-close" onclick="closeModal()">✕</div>
+    </div>
+    <div class="modal-body" id="modal-body"></div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+const API = '';
+let allData    = [];
+let filtered   = [];
+let currentPage = 1;
+const PER_PAGE  = 15;
+let sortKey    = 'created_at';
+let sortDir    = -1;   // -1 = desc, 1 = asc
+
+// ── Load ──────────────────────────────────────────────────
+async function loadHistory() {
+  showLoader(true);
+  try {
+    // โหลดทุก session (max 500)
+    const res  = await fetch(`${API}/api/history?per_page=500`);
+    const json = await res.json();
+    allData = json.data?.sessions || [];
+    computeStats();
+    applyFilterSort();
+  } catch(e) {
+    toast('โหลดข้อมูลไม่สำเร็จ: ' + e.message, 'err');
+  } finally {
+    showLoader(false);
+  }
+}
+
+// ── Stats ─────────────────────────────────────────────────
+function computeStats() {
+  const total   = allData.length;
+  const revenue = allData.reduce((s, r) => s + (r.total_price || 0), 0);
+  const avg     = total ? revenue / total : 0;
+
+  // หาเมนูยอดนิยม
+  const freq = {};
+  allData.forEach(s => (s.items||[]).forEach(it => {
+    const n = it.food_name_th || it.food_name;
+    freq[n] = (freq[n]||0) + 1;
+  }));
+  const top = Object.entries(freq).sort((a,b) => b[1]-a[1])[0];
+
+  _el('s-total').textContent   = total;
+  _el('s-revenue').textContent = revenue.toFixed(0);
+  _el('s-avg').textContent     = avg.toFixed(0);
+  if (top) {
+    _el('s-top').textContent       = top[0];
+    _el('s-top-count').textContent = `${top[1]} ครั้ง`;
+  }
+}
+
+// ── Filter + Sort + Paginate ──────────────────────────────
+function applyFilterSort() {
+  const q = _el('search-input').value.toLowerCase().trim();
+
+  filtered = allData.filter(s => {
+    if (!q) return true;
+    if (String(s.id).includes(q)) return true;
+    if ((s.session_uuid||'').includes(q)) return true;
+    return (s.items||[]).some(it =>
+      (it.food_name_th||'').toLowerCase().includes(q) ||
+      (it.food_name||'').toLowerCase().includes(q)
+    );
+  });
+
+  // Sort
+  filtered.sort((a, b) => {
+    let av = a[sortKey], bv = b[sortKey];
+    if (typeof av === 'string') av = av.toLowerCase();
+    if (typeof bv === 'string') bv = bv.toLowerCase();
+    return av < bv ? -sortDir : av > bv ? sortDir : 0;
+  });
+
+  currentPage = 1;
+  renderTable();
+  renderPagination();
+}
+
+function sortBy(key) {
+  if (sortKey === key) sortDir *= -1;
+  else { sortKey = key; sortDir = -1; }
+
+  // update header icons
+  document.querySelectorAll('thead th').forEach(th => th.classList.remove('sorted'));
+  const th = document.getElementById('th-' + key);
+  if (th) {
+    th.classList.add('sorted');
+    th.querySelector('.sort-icon').textContent = sortDir === -1 ? '↓' : '↑';
+  }
+  applyFilterSort();
+}
+
+// ── Render Table ──────────────────────────────────────────
+function renderTable() {
+  const tbody = _el('history-tbody');
+  const empty = _el('empty-state');
+  const start = (currentPage - 1) * PER_PAGE;
+  const page  = filtered.slice(start, start + PER_PAGE);
+
+  empty.style.display = filtered.length === 0 ? 'block' : 'none';
+  _el('history-table').style.display = filtered.length === 0 ? 'none' : '';
+
+  tbody.innerHTML = page.map(s => {
+    const items = (s.items || []);
+    const tags  = items.slice(0, 4).map(it =>
+      `<span class="food-tag">${it.food_name_th || it.food_name}</span>`
+    ).join('') + (items.length > 4 ? `<span class="food-tag">+${items.length-4}</span>` : '');
+
+    const dt = new Date(s.created_at).toLocaleString('th-TH', {
+      day:'2-digit', month:'short', year:'2-digit',
+      hour:'2-digit', minute:'2-digit'
+    });
+    const wt = s.weight_grams > 0 ? `${s.weight_grams.toFixed(0)}g` : '—';
+
+    return `<tr>
+      <td><span class="session-id">#${s.id}</span></td>
+      <td class="date-cell">${dt}</td>
+      <td><div class="items-cell">${tags || '<span style="color:var(--muted);font-size:.72rem">ไม่มีรายการ</span>'}</div></td>
+      <td style="font-family:var(--font-mono);font-size:.78rem;color:var(--muted)">${s.item_count}</td>
+      <td class="weight-cell">${wt}</td>
+      <td class="price-cell">฿${(s.total_price||0).toFixed(0)}</td>
+      <td><div class="action-cell">
+        <button class="btn-sm btn-view" onclick="viewDetail(${s.id})">ดู</button>
+        <button class="btn-sm btn-del"  onclick="deleteSession(${s.id}, this)">ลบ</button>
+      </div></td>
+    </tr>`;
+  }).join('');
+}
+
+// ── Pagination ────────────────────────────────────────────
+function renderPagination() {
+  const total = filtered.length;
+  const pages = Math.ceil(total / PER_PAGE) || 1;
+  const el    = _el('pagination');
+
+  const info = `แสดง ${Math.min((currentPage-1)*PER_PAGE+1, total)}–${Math.min(currentPage*PER_PAGE, total)} จาก ${total} รายการ`;
+
+  const nums = [];
+  for (let p = 1; p <= pages; p++) {
+    if (p === 1 || p === pages || Math.abs(p - currentPage) <= 1) {
+      nums.push(`<button class="page-btn ${p===currentPage?'active':''}" onclick="goPage(${p})">${p}</button>`);
+    } else if (nums[nums.length-1] !== '…') {
+      nums.push('…');
+    }
+  }
+
+  el.innerHTML = `
+    <span>${info}</span>
+    <div class="page-btns">
+      <button class="page-btn" onclick="goPage(${currentPage-1})" ${currentPage<=1?'disabled':''}>‹</button>
+      ${nums.join('')}
+      <button class="page-btn" onclick="goPage(${currentPage+1})" ${currentPage>=pages?'disabled':''}>›</button>
+    </div>`;
+}
+
+function goPage(p) {
+  const pages = Math.ceil(filtered.length / PER_PAGE) || 1;
+  currentPage = Math.max(1, Math.min(p, pages));
+  renderTable();
+  renderPagination();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// ── Detail Modal ──────────────────────────────────────────
+async function viewDetail(id) {
+  try {
+    const res  = await fetch(`${API}/api/history/${id}`);
+    const json = await res.json();
+    if (!json.success) throw new Error(json.error);
+    const s = json.data;
+
+    _el('modal-title').textContent = `Session #${s.id}`;
+
+    const itemRows = (s.items||[]).map(it => `
+      <tr>
+        <td>${it.food_name_th || it.food_name}</td>
+        <td style="color:var(--muted);font-size:.72rem">${it.food_name_en || ''}</td>
+        <td><span class="conf-badge">${Math.round((it.confidence||0)*100)}%</span></td>
+        <td style="font-family:var(--font-mono);font-size:.76rem;color:var(--muted)">${it.weight_grams>0?it.weight_grams.toFixed(0)+'g':'—'}</td>
+        <td style="font-family:var(--font-mono);color:var(--green)">฿${(it.price||0).toFixed(0)}</td>
+      </tr>`).join('');
+
+    _el('modal-body').innerHTML = `
+      <div class="detail-row"><span class="detail-key">SESSION UUID</span><span class="detail-value" style="font-family:var(--font-mono);font-size:.68rem;color:var(--muted)">${s.session_uuid}</span></div>
+      <div class="detail-row"><span class="detail-key">วันเวลา</span><span class="detail-value">${new Date(s.created_at).toLocaleString('th-TH')}</span></div>
+      <div class="detail-row"><span class="detail-key">จำนวนเมนู</span><span class="detail-value">${s.item_count} รายการ</span></div>
+      <div class="detail-row"><span class="detail-key">น้ำหนักรวม</span><span class="detail-value">${s.weight_grams>0?s.weight_grams.toFixed(1)+' กรัม':'—'}</span></div>
+      <div class="detail-row"><span class="detail-key">ราคารวม</span><span class="detail-value" style="color:var(--green);font-family:var(--font-mono);font-size:1.1rem">฿${(s.total_price||0).toFixed(0)}</span></div>
+      ${s.notes ? `<div class="detail-row"><span class="detail-key">หมายเหตุ</span><span class="detail-value">${s.notes}</span></div>` : ''}
+      <div style="margin-top:14px;">
+        <div style="font-size:.65rem;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;font-family:var(--font-mono);margin-bottom:8px;">รายการอาหาร</div>
+        <table class="items-detail-table">
+          <thead><tr><th>ชื่อ (ไทย)</th><th>ชื่อ (EN)</th><th>ความแม่นยำ</th><th>น้ำหนัก</th><th>ราคา</th></tr></thead>
+          <tbody>${itemRows || '<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:16px">ไม่มีรายการ</td></tr>'}</tbody>
+        </table>
+      </div>`;
+
+    _el('modal').classList.add('show');
+  } catch(e) {
+    toast('โหลดรายละเอียดไม่สำเร็จ: ' + e.message, 'err');
+  }
+}
+
+function closeModal(e) {
+  if (!e || e.target === _el('modal')) {
+    _el('modal').classList.remove('show');
+  }
+}
+
+// ── Delete ────────────────────────────────────────────────
+async function deleteSession(id, btn) {
+  if (!confirm(`ต้องการลบ Session #${id} ใช่ไหม?`)) return;
+  try {
+    btn.disabled = true;
+    const res  = await fetch(`${API}/api/history/${id}`, { method: 'DELETE' });
+    const json = await res.json();
+    if (!json.success) throw new Error(json.error);
+    allData = allData.filter(s => s.id !== id);
+    computeStats();
+    applyFilterSort();
+    toast(`ลบ Session #${id} แล้ว`, 'ok');
+  } catch(e) {
+    toast('ลบไม่สำเร็จ: ' + e.message, 'err');
+    btn.disabled = false;
+  }
+}
+
+// ── Export CSV ────────────────────────────────────────────
+function exportCSV() {
+  if (!filtered.length) { toast('ไม่มีข้อมูลให้ export', 'err'); return; }
+
+  const rows = [['ID','UUID','วันเวลา','จำนวนเมนู','น้ำหนัก(g)','ราคารวม','รายการอาหาร']];
+  filtered.forEach(s => {
+    const names = (s.items||[]).map(i => i.food_name_th || i.food_name).join(' | ');
+    rows.push([s.id, s.session_uuid, s.created_at, s.item_count,
+               s.weight_grams.toFixed(1), s.total_price.toFixed(0), names]);
+  });
+
+  const csv  = rows.map(r => r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = `food_ai_history_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+  toast(`Export ${filtered.length} รายการแล้ว`, 'ok');
+}
+
+// ── Helpers ───────────────────────────────────────────────
+function _el(id) { return document.getElementById(id); }
+function showLoader(show) { _el('loader').style.display = show ? 'block' : 'none'; }
+
+let _toastT = null;
+function toast(msg, type='') {
+  const el = _el('toast');
+  clearTimeout(_toastT);
+  el.textContent = msg;
+  el.className   = `show ${type}`;
+  _toastT = setTimeout(() => el.className = '', 2800);
+}
+
+// Search debounce
+let _searchT = null;
+_el('search-input').addEventListener('input', () => {
+  clearTimeout(_searchT);
+  _searchT = setTimeout(applyFilterSort, 300);
+});
+
+// ── Init ──────────────────────────────────────────────────
+loadHistory();
+</script>
+</body>
+</html>

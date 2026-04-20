@@ -1,0 +1,85 @@
+{
+  "_comment": "กำหนดเมนูหลักและวัตถุดิบ — ไม่ต้องเจอครบ แค่เจอวัตถุดิบหลักก็ถือว่าเป็นเมนูนั้นได้",
+  "_format": "ingredients = รายการทั้งหมด, main_ingredients = วัตถุดิบหลัก (เจออย่างน้อยหนึ่งก็พอ)",
+  "_main_ingredients_note": "ใช้ main_ingredients สำหรับจับคู่เมนูจากผลตรวจจับ (ไม่ต้องเจอครบทุกอย่างใน ingredients)",
+
+  "menus": [
+    {
+      "key": "noodle_chicken_drumstick",
+      "name_th": "ก๋วยเตี๋ยวไก่น่อง",
+      "name_en": "Noodle with Chicken Drumstick",
+      "main_ingredients": ["chicken_drumstick"],
+      "ingredients": ["chicken_drumstick", "daikon_radish", "boiled_chicken_blood_jelly"]
+    },
+    {
+      "key": "noodle_chicken_shredded",
+      "name_th": "ก๋วยเตี๋ยวไก่ฉีก",
+      "name_en": "Noodle with Shredded Chicken",
+      "main_ingredients": ["chicken_shredded"],
+      "ingredients": ["chicken_shredded", "daikon_radish", "boiled_chicken_blood_jelly"]
+    },
+    {
+      "key": "chicken_rice_fried",
+      "name_th": "ข้าวมันไก่ทอด",
+      "name_en": "Khao Man Gai with Fried Chicken",
+      "main_ingredients": ["fried_chicken","boiled_chicken_blood_jelly"],
+      "ingredients": ["fried_chicken", "cucumber", "rice", "boiled_chicken_blood_jelly"]
+    },
+    {
+      "key": "chicken_rice_boiled",
+      "name_th": "ข้าวมันไก่ต้ม",
+      "name_en": "Khao Man Gai with Boiled Chicken",
+      "main_ingredients": ["boiled_chicken","boiled_chicken_blood_jelly"],
+      "ingredients": ["boiled_chicken", "cucumber", "rice", "boiled_chicken_blood_jelly"]
+    },
+    {
+      "key": "chicken_rice_mixed",
+      "name_th": "ข้าวมันไก่ทอดไก่ต้ม (ผสม)",
+      "name_en": "Khao Man Gai Mixed (Fried & Boiled)",
+      "main_ingredients": ["fried_chicken", "boiled_chicken","boiled_chicken_blood_jelly"],
+      "ingredients": ["boiled_chicken", "fried_chicken", "cucumber", "rice", "boiled_chicken_blood_jelly"]
+    },
+    {
+      "key": "chicken_rice_grilled",
+      "name_th": "ข้าวมันไก่ย่าง",
+      "name_en": "Khao Man Gai with Grilled Chicken",
+      "main_ingredients": ["grilled_chicken","boiled_chicken_blood_jelly"],
+      "ingredients": ["grilled_chicken", "cucumber", "rice"]
+    },
+    {
+      "key": "stir_fried_basil_minced_pork",
+      "name_th": "ข้าวผัดกะเพราหมูสับ",
+      "name_en": "Rice with Basil and Minced Pork",
+      "main_ingredients": ["minced_pork"],
+      "ingredients": ["rice", "basil_leaf", "minced_pork"]
+    },
+    {
+      "key": "stir_fried_basil_minced_pork_tofu",
+      "name_th": "ข้าวผัดกะเพราหมูสับเต้าหู้",
+      "name_en": "Rice with Basil, Minced Pork & Tofu",
+      "main_ingredients": ["minced_pork", "fried_tofo"],
+      "ingredients": ["rice", "basil_leaf", "minced_pork", "fried_tofo"]
+    },
+    {
+      "key": "rice_crispy_pork",
+      "name_th": "ข้าวหมูกรอบ",
+      "name_en": "Rice with Crispy Pork",
+      "main_ingredients": ["crispy_pork"],
+      "ingredients": ["rice", "crispy_pork", "boiled_egg", "chainese_sausage", "cucumber"]
+    },
+    {
+      "key": "rice_red_pork",
+      "name_th": "ข้าวหมูแดง",
+      "name_en": "Rice with Red Pork",
+      "main_ingredients": ["red_pork"],
+      "ingredients": ["rice", "red_pork", "boiled_egg", "chainese_sausage", "cucumber"]
+    },
+    {
+      "key": "red_pork_and_crispy_pork",
+      "name_th": "ข้าวหมูกรอบหมูแดง (ผสม)",
+      "name_en": "Rice with Red Pork & Crispy Pork",
+      "main_ingredients": ["crispy_pork", "red_pork"],
+      "ingredients": ["rice", "crispy_pork", "red_pork", "boiled_egg", "chainese_sausage", "cucumber"]
+    }
+  ]
+}
