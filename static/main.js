@@ -64,7 +64,15 @@ function startWeightStream() {
 /** Tare — POST /api/weight/tare */
 async function tareScale() {
     const btn = getEl("btn-tare");
-    if (btn) { btn.disabled = true; btn.textContent = "⏳ กำลัง Tare..."; }
+    if (btn) {
+        btn.disabled = true;
+        btn.textContent = "⏳ กำลัง Tare...";
+        btn.style.background = "#e67e22";
+        btn.style.opacity = "0.7";
+    }
+
+    // แสดง loading overlay
+    showLoading(true, "⚖️ กำลัง Tare เครื่องชั่ง กรุณารอสักครู่...");
 
     try {
         const res  = await fetch("/api/weight/tare", { method: "POST" });
@@ -76,15 +84,30 @@ async function tareScale() {
         }
     } catch (err) {
         showToast("❌ ติดต่อเซิร์ฟเวอร์ไม่ได้", "error");
+    } finally {
+        showLoading(false);
+        if (btn) {
+            btn.disabled = false;
+            btn.textContent = "⚖️ Tare (归零)";
+            btn.style.opacity = "1";
+        }
     }
-
-    if (btn) { btn.disabled = false; btn.textContent = "⚖️ Tare (归零)"; }
 }
 
 // ══════════════════════════════════════════════════════
 // 1. ถ่ายภาพ
 // ══════════════════════════════════════════════════════
 async function captureFromPi() {
+    if (piCapturedFilename) {
+        try {
+            await fetch("/api/cleanup", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ filename: piCapturedFilename })
+            });
+        } catch (err) { console.warn("Cleanup error:", err); }
+        piCapturedFilename = null;
+    }
     showLoading(true, "กำลังบันทึกภาพจากกล้อง...");
     try {
         const res  = await fetch("/api/capture", { method: "POST" });
@@ -182,6 +205,36 @@ function renderResult(data) {
 }
 
 // ══════════════════════════════════════════════════════
+// 5. ตรวจซ้ำ (Rescan) — ใช้รูปเดิม detect ใหม่
+// ══════════════════════════════════════════════════════
+async function rescan() {
+    if (!piCapturedFilename) {
+        showToast("⚠️ ไม่พบรูปภาพ กรุณาถ่ายใหม่", "error");
+        return;
+    }
+    showLoading(true, "AI กำลังวิเคราะห์อาหารใหม่...");
+    try {
+        const res  = await fetch("/api/detect-captured", {
+            method:  "POST",
+            headers: { "Content-Type": "application/json" },
+            body:    JSON.stringify({ filename: piCapturedFilename }),
+        });
+        const data = await res.json();
+        if (data.success) {
+            lastDetectionData = data;
+            renderResult(data);
+            showToast("🔄 ตรวจจับใหม่เรียบร้อย", "success");
+        } else {
+            showToast("❌ ตรวจจับไม่สำเร็จ", "error");
+        }
+    } catch (err) {
+        console.error(err);
+        showToast("❌ ติดต่อเซิร์ฟเวอร์ไม่ได้", "error");
+    }
+    showLoading(false);
+}
+
+// ══════════════════════════════════════════════════════
 // Utility
 // ══════════════════════════════════════════════════════
 function startCountdown(seconds) {
@@ -199,7 +252,16 @@ function showScreen(id) {
     getEl(id)?.classList.add("active");
 }
 
-function goHome() {
+async function goHome() {
+    if (piCapturedFilename) {
+        try {
+            await fetch("/api/cleanup", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ filename: piCapturedFilename })
+            });
+        } catch (err) { console.warn("Cleanup error:", err); }
+    }
     piCapturedFilename = null;
     lastDetectionData  = null;
     const img = getEl("preview-img");

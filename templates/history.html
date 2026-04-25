@@ -148,6 +148,17 @@ tbody td { padding: 10px 14px; vertical-align: middle; }
 .page-btn:disabled { opacity: .35; cursor: default; }
 .page-btn.active { background: var(--blue); border-color: var(--blue); color: #000; font-weight: 700; }
 
+/* ── Thumbnail ── */
+.thumb {
+  width: 48px; height: 48px; border-radius: 6px;
+  object-fit: cover; border: 1px solid var(--border);
+  cursor: pointer; transition: transform .15s;
+}
+.thumb:hover { transform: scale(1.1); }
+.no-img { width: 48px; height: 48px; border-radius: 6px;
+  background: var(--surface2); display: flex; align-items: center;
+  justify-content: center; font-size: 1.2rem; }
+
 /* ── Empty state ── */
 .empty-state {
   padding: 60px 20px; text-align: center; color: var(--muted);
@@ -302,6 +313,7 @@ tbody td { padding: 10px 14px; vertical-align: middle; }
     <table id="history-table">
       <thead>
         <tr>
+          <th>รูป</th>
           <th onclick="sortBy('id')" id="th-id">
             # <span class="sort-icon">↕</span>
           </th>
@@ -377,26 +389,25 @@ async function loadHistory() {
 }
 
 // ── Stats ─────────────────────────────────────────────────
-function computeStats() {
+async function computeStats() {
   const total   = allData.length;
   const revenue = allData.reduce((s, r) => s + (r.total_price || 0), 0);
   const avg     = total ? revenue / total : 0;
 
-  // หาเมนูยอดนิยม
-  const freq = {};
-  allData.forEach(s => (s.items||[]).forEach(it => {
-    const n = it.food_name_th || it.food_name;
-    freq[n] = (freq[n]||0) + 1;
-  }));
-  const top = Object.entries(freq).sort((a,b) => b[1]-a[1])[0];
-
   _el('s-total').textContent   = total;
   _el('s-revenue').textContent = revenue.toFixed(0);
   _el('s-avg').textContent     = avg.toFixed(0);
-  if (top) {
-    _el('s-top').textContent       = top[0];
-    _el('s-top-count').textContent = `${top[1]} ครั้ง`;
-  }
+
+  // โหลดเมนูยอดนิยมจาก /api/stats แทน
+  try {
+    const sres  = await fetch('/api/stats');
+    const sdata = await sres.json();
+    if (sdata.top_menus && sdata.top_menus.length > 0) {
+      const top = sdata.top_menus[0];
+      _el('s-top').textContent       = top.name;
+      _el('s-top-count').textContent = `${top.count} ครั้ง`;
+    }
+  } catch(e) { console.warn('Stats load error:', e); }
 }
 
 // ── Filter + Sort + Paginate ──────────────────────────────
@@ -462,7 +473,13 @@ function renderTable() {
     });
     const wt = s.weight_grams > 0 ? `${s.weight_grams.toFixed(0)}g` : '—';
 
+    const imgName = s.filename ? `annotated_${s.filename}` : null;
+    const thumbHtml = imgName
+      ? `<img class="thumb" src="/confirmed/${imgName}" onclick="showImg('/confirmed/${imgName}')" onerror="this.style.display='none'">`
+      : `<div class="no-img">📷</div>`;
+
     return `<tr>
+      <td>${thumbHtml}</td>
       <td><span class="session-id">#${s.id}</span></td>
       <td class="date-cell">${dt}</td>
       <td><div class="items-cell">${tags || '<span style="color:var(--muted);font-size:.72rem">ไม่มีรายการ</span>'}</div></td>
@@ -530,7 +547,9 @@ async function viewDetail(id) {
         <td style="font-family:var(--font-mono);color:var(--green)">฿${(it.price||0).toFixed(0)}</td>
       </tr>`).join('');
 
+    const imgUrl = s.filename ? `/confirmed/annotated_${s.filename}` : null;
     _el('modal-body').innerHTML = `
+      ${imgUrl ? `<img src="${imgUrl}" style="width:100%;border-radius:8px;margin-bottom:14px;object-fit:cover;max-height:220px;" onerror="this.style.display='none'">` : ''}
       <div class="detail-row"><span class="detail-key">SESSION UUID</span><span class="detail-value" style="font-family:var(--font-mono);font-size:.68rem;color:var(--muted)">${s.session_uuid}</span></div>
       <div class="detail-row"><span class="detail-key">วันเวลา</span><span class="detail-value">${new Date(s.created_at).toLocaleString('th-TH')}</span></div>
       <div class="detail-row"><span class="detail-key">จำนวนเมนู</span><span class="detail-value">${s.item_count} รายการ</span></div>
@@ -616,6 +635,13 @@ _el('search-input').addEventListener('input', () => {
   clearTimeout(_searchT);
   _searchT = setTimeout(applyFilterSort, 300);
 });
+
+// ── Image viewer ─────────────────────────────────────────
+function showImg(url) {
+  _el('modal-title').textContent = 'ภาพถ่ายที่ตรวจจับ';
+  _el('modal-body').innerHTML = `<img src="${url}" style="width:100%;border-radius:8px;" onerror="this.innerHTML='ไม่พบรูปภาพ'">`;
+  _el('modal').classList.add('show');
+}
 
 // ── Init ──────────────────────────────────────────────────
 loadHistory();

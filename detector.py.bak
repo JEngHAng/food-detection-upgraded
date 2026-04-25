@@ -125,144 +125,6 @@ class FoodDetector:
             return {"success": False, "error": "Model not initialized"}
         return self._detect_yolo(image_path)
 
-
-    def _match_menu(self, detected_classes: list[str]) -> dict:
-        """
-        จับคู่ class ที่ detect ได้กับเมนูใน menu.json
-        คืน dict ของเมนูที่ตรงที่สุด หรือ None ถ้าไม่พบ
-        
-        Logic:
-          1. หา class หลัก (is_main=True) ที่ detect เจอ
-          2. สำหรับแต่ละ main class ดู sub-menus (ถ้ามี)
-          3. นับ ingredients ที่ตรงกับ detected_classes
-          4. เลือก menu ที่ match มากที่สุด
-        """
-        detected_set = set(detected_classes)
-        best_match = None
-        best_score = -1
-
-        for class_name, item in self.menu.items():
-            if not isinstance(item, dict) or not item.get("is_main"):
-                continue
-            if class_name not in detected_set:
-                continue
-
-            # ถ้ามี sub-menus
-            if "menus" in item:
-                for sub in item["menus"]:
-                    ingredients = set(sub.get("ingredients", []))
-                    score = len(ingredients & detected_set)
-                    if score > best_score:
-                        best_score = score
-                        best_match = {
-                            "class_name": class_name,
-                            "name_th": sub["name_th"],
-                            "name_en": sub["name_en"],
-                            "price": sub["price"],
-                            "ingredients": sub.get("ingredients", []),
-                            "score": score,
-                        }
-            else:
-                # ไม่มี sub-menus ใช้ราคา base
-                ingredients = set(item.get("ingredients", []))
-                score = len(ingredients & detected_set) if ingredients else 1
-                if score > best_score:
-                    best_score = score
-                    best_match = {
-                        "class_name": class_name,
-                        "name_th": item["name_th"],
-                        "name_en": item["name_en"],
-                        "price": item["price"],
-                        "ingredients": item.get("ingredients", []),
-                        "score": score,
-                    }
-
-        return best_match
-
-    def _build_menu_result(self, detections: list[dict]) -> list[dict]:
-        """
-        จาก detections ทั้งหมด หาเมนูหลักทั้งหมดที่ตรง
-        คืน list ของเมนูที่ match ได้ (รองรับหลายเมนูในภาพเดียว)
-        """
-        detected_classes = [d["name"] for d in detections]
-        detected_set = set(detected_classes)
-        results = []
-        used_classes = set()
-
-        # หา main class ทั้งหมดที่เจอในภาพ
-        main_classes = [
-            c for c in detected_classes
-            if isinstance(self.menu.get(c), dict) and self.menu[c].get("is_main")
-        ]
-
-        # เรียง main_class ให้เมนูที่มี ingredients เยอะกว่ามาก่อน
-        # เพื่อให้ red_pork_and_crispy_pork มาก่อน crispy_pork
-        def main_priority(cls):
-            item = self.menu.get(cls, {})
-            if "menus" in item:
-                return max(len(sub.get("ingredients", [])) for sub in item["menus"])
-            return len(item.get("ingredients", []))
-
-        main_classes = sorted(main_classes, key=main_priority, reverse=True)
-
-        for main_class in main_classes:
-            if main_class in used_classes:
-                continue
-
-            item = self.menu[main_class]
-            best_sub = None
-            best_score = -1
-
-            if "menus" in item:
-                for sub in item["menus"]:
-                    ingredients = set(sub.get("ingredients", []))
-                    score = len(ingredients & detected_set)
-                    if score > best_score:
-                        best_score = score
-                        best_sub = sub
-            
-            if best_sub:
-                match = {
-                    "class_name": main_class,
-                    "name_th": best_sub["name_th"],
-                    "name_en": best_sub["name_en"],
-                    "price": best_sub["price"],
-                    "ingredients": best_sub.get("ingredients", []),
-                }
-            else:
-                match = {
-                    "class_name": main_class,
-                    "name_th": item["name_th"],
-                    "name_en": item["name_en"],
-                    "price": item["price"],
-                    "ingredients": item.get("ingredients", []),
-                }
-
-            results.append({
-                "name": match["class_name"],
-                "name_th": match["name_th"],
-                "name_en": match["name_en"],
-                "price": match["price"],
-                "confidence": next((d["confidence"] for d in detections if d["name"] == main_class), 0),
-                "ingredients": [
-                    {
-                        "name": d["name"],
-                        "name_th": self.menu.get(d["name"], {}).get("name_th", d["name"]),
-                        "confidence": d["confidence"],
-                        "bbox": d["bbox"],
-                    }
-                    for d in detections
-                    if d["name"] in match["ingredients"]
-                ],
-            })
-            used_classes.add(main_class)
-            # mark ingredients ที่เป็น main class ด้วย ป้องกันนับซ้ำ
-            for ing in match["ingredients"]:
-                if ing in [c for c in main_classes]:
-                    used_classes.add(ing)
-
-        return results if results else []
-
     # ── YOLO Detection ─────────────────────────────────────
 
     def _detect_yolo(self, image_path: str) -> dict:
@@ -304,18 +166,13 @@ class FoodDetector:
                 self._draw_box_pil(pil_img, det, i)
 
             annotated_path = self._save_annotated_pil(pil_img, image_path)
-            # จับคู่เมนูจาก ingredients (รองรับหลายเมนู)
-            menu_results = self._build_menu_result(detections)
-            total_price = sum(m["price"] for m in menu_results) if menu_results else sum(d["price"] for d in detections)
-
             out = {
                 "success": True,
                 "detections": detections,
-                "total_price": total_price,
+                "total_price": sum(d["price"] for d in detections),
                 "annotated_path": annotated_path,
                 "count": len(detections),
                 "mock": False,
-                "matched_menus": menu_results,
             }
             out["menus"] = self._build_menus_hierarchy(detections)
             return out

@@ -389,3 +389,20 @@ html, body {
 #toast.show  { opacity: 1; transform: translateX(-50%) translateY(0); }
 #toast.success { border-color: rgba(34, 197, 94, 0.5); color: var(--green); }
 #toast.error   { border-color: rgba(239, 68, 68, 0.4); color: #f87171; }
+
+/* Rescan button */
+.btn-rescan {
+  padding: 14px 32px;
+  border: none;
+  border-radius: 999px;
+  font-family: var(--font-th);
+  font-weight: 700;
+  font-size: 1rem;
+  cursor: pointer;
+  min-height: 52px;
+  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+  color: #fff;
+  box-shadow: 0 3px 14px rgba(59,130,246,0.35);
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+.btn-rescan:active { transform: scale(0.97); }
