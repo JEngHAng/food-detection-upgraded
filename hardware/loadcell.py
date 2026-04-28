@@ -147,16 +147,19 @@ class LoadCell:
                 "stable": b_count == 0, "mock": False}
 
     def tare(self) -> bool:
-        """Tare: อ่าน 30 ครั้งแล้วบันทึกเป็น zero_raw"""
+        """Tare: อ่านเร็ว 15 ครั้งแล้วบันทึกเป็น zero_raw (~3 วิ)"""
         if not self._ready or self._hx is None:
             return False
         try:
             samples = []
-            for _ in range(30):
-                mean_raw, _, _ = _read_raw_mean(self._hx, n=3)
-                if mean_raw is not None:
-                    samples.append(mean_raw)
-                time.sleep(0.05)
+            for _ in range(15):
+                try:
+                    data = self._hx.get_raw_data()
+                    if data:
+                        samples.extend(data)
+                except Exception:
+                    pass
+                time.sleep(0.1)
             if not samples:
                 return False
             self._zero_raw = statistics.mean(samples)

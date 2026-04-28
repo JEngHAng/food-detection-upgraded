@@ -30,6 +30,33 @@ init_db(str(DB_PATH))
 app.detector = FoodDetector()
 app.camera = PiCamera()
 
+# Tare เครื่องชั่งอัตโนมัติตอนเริ่ม app
+from hardware.loadcell import LoadCell
+app.loadcell = LoadCell()
+app.tare_status = "pending"  # pending, running, done, failed
+import threading
+def auto_tare():
+    import time
+    time.sleep(3)
+    app.tare_status = "running"
+    if app.loadcell.is_available:
+        success = app.loadcell.tare()
+        if success:
+            app.tare_status = "done"
+            print("✅ Auto tare สำเร็จ — น้ำหนักรีเซ็ตเป็น 0.0 กรัม")
+        else:
+            app.tare_status = "failed"
+            print("⚠️ Auto tare ไม่สำเร็จ")
+    else:
+        app.tare_status = "done"
+        print("⚠️ ไม่พบเครื่องชั่ง — ข้าม auto tare")
+
+threading.Thread(target=auto_tare, daemon=True).start()
+
+@app.route("/api/tare_status")
+def tare_status():
+    return jsonify({"status": app.tare_status})
+
 @app.route("/")
 def index():
     return render_template("index.html")

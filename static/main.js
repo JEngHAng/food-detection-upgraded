@@ -192,16 +192,51 @@ function renderResult(data) {
     const list = getEl("menu-list");
     if (list) {
         const dishes = data.dishes || [];
-        list.innerHTML = dishes.map(dish => `
-            <div class="menu-card" style="background:#6d28d9;border-radius:10px;padding:15px;margin-bottom:10px;color:white;display:flex;justify-content:space-between;align-items:center;">
-                <span style="font-weight:600;">${dish.name_th || dish.name}</span>
-                <span style="font-weight:bold;">฿${Math.round(dish.price)}</span>
-            </div>
-        `).join("");
+        list.innerHTML = dishes.map((dish, idx) => {
+            const ingredients = dish.ingredients || [];
+            const hasIngredients = ingredients.length > 0;
+            const conf = dish.confidence ? Math.round(dish.confidence * 100) : 0;
+
+            const ingHtml = hasIngredients ? `
+                <div id="ing-${idx}" style="display:none;background:rgba(0,0,0,0.3);border-top:1px solid rgba(255,255,255,0.15);padding:10px 14px;">
+                    ${ingredients.map(ing => `
+                        <div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;font-size:0.82rem;color:rgba(255,255,255,0.85);">
+                            <span>• ${ing.name_th || ing.name}</span>
+                            <span style="font-size:0.75rem;opacity:0.7;">${ing.confidence ? Math.round(ing.confidence*100)+'%' : ''}</span>
+                        </div>
+                    `).join("")}
+                </div>
+            ` : '';
+
+            return `
+            <div class="menu-card" style="background:#6d28d9;border-radius:10px;margin-bottom:10px;color:white;overflow:hidden;">
+                <div style="padding:14px 16px;display:flex;justify-content:space-between;align-items:center;cursor:${hasIngredients?'pointer':'default'};"
+                     onclick="${hasIngredients?`toggleIng(${idx})`:''}">
+                    <div style="display:flex;flex-direction:column;gap:2px;">
+                        <span style="font-weight:700;font-size:1rem;">${dish.name_th || dish.name}</span>
+                        ${conf ? `<span style="font-size:0.72rem;opacity:0.75;">ความแม่นยำ ${conf}%</span>` : ''}
+                    </div>
+                    <div style="display:flex;align-items:center;gap:10px;">
+                        <span style="font-weight:bold;font-size:1rem;">฿${Math.round(dish.price)}</span>
+                        ${hasIngredients ? `<span id="arrow-${idx}" style="font-size:0.8rem;transition:transform 0.2s;">▼</span>` : ''}
+                    </div>
+                </div>
+                ${ingHtml}
+            </div>`;
+        }).join("");
     }
 
     const total = getEl("total-price-display");
     if (total) total.textContent = Math.round(data.total_price || 0);
+}
+
+function toggleIng(idx) {
+    const el    = document.getElementById(`ing-${idx}`);
+    const arrow = document.getElementById(`arrow-${idx}`);
+    if (!el) return;
+    const isOpen = el.style.display !== 'none';
+    el.style.display = isOpen ? 'none' : 'block';
+    if (arrow) arrow.style.transform = isOpen ? '' : 'rotate(180deg)';
 }
 
 // ══════════════════════════════════════════════════════
@@ -291,5 +326,32 @@ function showToast(msg, type = "") {
 // ══════════════════════════════════════════════════════
 window.onload = () => {
     console.log("✅ ระบบพร้อมใช้งาน");
-    startWeightStream();   // เริ่ม SSE weight stream ทันที
+    startWeightStream();
+    checkAutoTare();
 };
+
+async function checkAutoTare() {
+    // ซ่อนน้ำหนักระหว่าง tare
+    document.querySelectorAll(".weight-display").forEach(el => el.textContent = "...");
+
+    showLoading(true, "⚖️ กำลัง Tare เครื่องชั่งอัตโนมัติ...");
+    while (true) {
+        try {
+            const res  = await fetch("/api/tare_status");
+            const data = await res.json();
+            if (data.status === "done") {
+                showLoading(false);
+                showToast("✅ ระบบพร้อมใช้งาน", "success");
+                break;
+            } else if (data.status === "failed") {
+                showLoading(false);
+                showToast("⚠️ Tare ไม่สำเร็จ กรุณากด Tare ด้วยตนเอง", "error");
+                break;
+            }
+        } catch (e) {
+            showLoading(false);
+            break;
+        }
+        await new Promise(r => setTimeout(r, 300));
+    }
+}
