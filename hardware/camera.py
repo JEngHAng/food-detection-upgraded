@@ -5,7 +5,11 @@ import subprocess
 import shutil
 import threading
 import time
+import io
+from PIL import Image
 from config import UPLOAD_DIR
+
+ROTATE_ANGLE = 90  # ← แก้ตรงนี้เพื่อเปลี่ยนองศา (90, 180, 270)
 
 logger = logging.getLogger(__name__)
 
@@ -75,9 +79,25 @@ class PiCamera:
                 logger.debug(f"Read loop error: {e}")
                 break
 
+    def _rotate(self, jpeg_bytes: bytes) -> bytes:
+        """หมุน JPEG bytes ตาม ROTATE_ANGLE แล้วคืน bytes ใหม่"""
+        if not ROTATE_ANGLE:
+            return jpeg_bytes
+        try:
+            img = Image.open(io.BytesIO(jpeg_bytes))
+            img = img.rotate(-ROTATE_ANGLE, expand=True)  # ลบ = หมุนตามเข็ม
+            buf = io.BytesIO()
+            img.save(buf, format="JPEG", quality=95)
+            return buf.getvalue()
+        except Exception:
+            return jpeg_bytes  # ถ้าพัง ส่ง frame เดิม
+
     def get_frame(self) -> bytes | None:
         with self._lock:
-            return self._frame
+            frame = self._frame
+        if frame is None:
+            return None
+        return self._rotate(frame)
 
     def capture(self) -> str | None:
         try:
@@ -85,8 +105,9 @@ class PiCamera:
             path = str(UPLOAD_DIR / filename)
             with self._lock:
                 if self._frame:
+                    rotated = self._rotate(self._frame)
                     with open(path, "wb") as f:
-                        f.write(self._frame)
+                        f.write(rotated)
                     logger.info(f"📸 บันทึกภาพสำเร็จ: {filename}")
                     return path
             return None

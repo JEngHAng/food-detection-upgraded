@@ -165,7 +165,8 @@ async function goToEnd() {
                 filename:    piCapturedFilename,
                 total_price: lastDetectionData.total_price,
                 dishes:      lastDetectionData.dishes,
-                weight:      _lastWeightG,           // ← ค่าจาก SSE stream
+                detections:  lastDetectionData.detections || [],  // ← raw ทุกอย่างที่ YOLO เจอ
+                weight:      _lastWeightG,
             }),
         });
         const result = await res.json();
@@ -188,6 +189,10 @@ async function goToEnd() {
 function renderResult(data) {
     const ri = getEl("result-img");
     if (ri) ri.src = data.annotated_image;
+
+    // แสดงน้ำหนักที่ชั่งได้ ณ เวลาที่ผลออกมา
+    const weightEl = getEl("result-weight-display");
+    if (weightEl) weightEl.textContent = _lastWeightG.toFixed(1);
 
     const list = getEl("menu-list");
     if (list) {

@@ -16,7 +16,7 @@
       #preview-img {
         width: 100%;
         height: 100%;
-        object-fit: cover;
+        object-fit: contain;
         display: block;
       }
       .camera-box {
@@ -98,7 +98,7 @@
               <span class="weight-mock-badge" style="display:none;font-size:0.7em;background:#555;color:#fff;border-radius:4px;padding:1px 5px;margin-left:4px;">mock</span>
             </span>
             <span class="dot weight-dot" style="background:#888;"></span>
-            <button id="btn-tare" onclick="tareScale()" style="margin-left:8px;padding:4px 12px;border-radius:6px;border:none;background:#e67e22;color:#fff;font-size:0.8em;cursor:pointer;font-family:inherit;">⚖️ Tare (归零)</button>
+            <button id="btn-tare" onclick="tareScale()" style="margin-left:8px;padding:4px 12px;border-radius:6px;border:none;background:#e67e22;color:#fff;font-size:0.8em;cursor:pointer;font-family:inherit;">⚖️ Tare </button>
           </div>
         </div>
         <!-- /panel-left -->
@@ -135,8 +135,14 @@
          RESULT SCREEN
     ═══════════════════════════════════════ -->
     <div id="result-screen" class="screen">
-      <div class="title-bar">
+      <div class="title-bar" style="flex-direction:column;gap:6px;padding-bottom:10px;">
         <div class="title-main">ผลการวิเคราะห์อาหาร</div>
+        <div style="display:flex;align-items:center;gap:8px;background:rgba(0,0,0,0.25);border-radius:999px;padding:6px 18px;">
+          <span style="font-size:1.1rem;">⚖️</span>
+          <span style="font-size:0.9rem;color:rgba(255,255,255,0.75);font-weight:500;">น้ำหนักที่ชั่งได้ :</span>
+          <span id="result-weight-display" style="font-size:1.15rem;font-weight:700;color:#f97316;font-family:'Space Mono',monospace;">0.0</span>
+          <span style="font-size:0.9rem;color:rgba(255,255,255,0.75);">กรัม</span>
+        </div>
       </div>
 
       <div class="screen-body">
@@ -164,7 +170,7 @@
 
       <div class="action-bar action-bar-row">
         <button class="btn-retake" onclick="goHome()">ถ่ายใหม่</button>
-        <button class="btn-rescan" onclick="rescan()">🔄 ตรวจซ้ำ</button>
+        <button class="btn-rescan" onclick="rescan()">ตรวจซ้ำ</button>
         <button class="btn-confirm" onclick="goToEnd()">
           ยืนยันความถูกต้อง
         </button>
@@ -306,7 +312,7 @@
               <span class="weight-mock-badge" style="display:none;font-size:0.7em;background:#555;color:#fff;border-radius:4px;padding:1px 5px;margin-left:4px;">mock</span>
             </span>
             <span class="dot weight-dot" style="background:#888;"></span>
-            <button id="btn-tare" onclick="tareScale()" style="margin-left:8px;padding:4px 12px;border-radius:6px;border:none;background:#e67e22;color:#fff;font-size:0.8em;cursor:pointer;font-family:inherit;">⚖️ Tare (归零)</button>
+            <button id="btn-tare" onclick="tareScale()" style="margin-left:8px;padding:4px 12px;border-radius:6px;border:none;background:#e67e22;color:#fff;font-size:0.8em;cursor:pointer;font-family:inherit;">⚖️ Tare</button>
           </div>
         </div>
         <!-- /panel-left -->
@@ -325,7 +331,7 @@
 
       <div class="action-bar" style="justify-content:space-between;padding:10px 20px;">
         <button onclick="location.href='/history'" style="padding:14px 24px;border:none;border-radius:999px;background:#334155;color:#94a3b8;font-family:inherit;font-size:0.9rem;font-weight:700;cursor:pointer;min-height:52px;">
-          📊 ประวัติ
+                          ประวัติ
         </button>
         <button
           id="detect-btn"

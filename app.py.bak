@@ -117,51 +117,28 @@ def confirm_api():
         filename = data.get("filename")
         total_price = data.get("total_price", 0)
         weight = data.get("weight", 0)
-        dishes     = data.get("dishes", [])
-        detections = data.get("detections", [])
+        dishes = data.get("dishes", [])
 
-        # หา class ที่ถูกใช้ในเมนูหรือ ingredients แล้ว
-        used_names = set()
-        for d in dishes:
-            used_names.add(d.get("name", ""))
-            for ing in d.get("ingredients", []):
-                used_names.add(ing.get("name", ""))
-
-        # detection ที่ YOLO เจอแต่ยังไม่อยู่ในเมนูใดเลย
-        extra = [d for d in detections if d.get("name", "") not in used_names]
-
-        # สร้าง dishes_json_list รวมเมนูหลัก + ingredients + extra
-        dishes_json_list = []
-        for d in dishes:
-            dishes_json_list.append({
-                "name": d.get("name",""), "name_th": d.get("name_th", d.get("name","")),
-                "name_en": d.get("name_en",""), "price": d.get("price",0),
-                "confidence": d.get("confidence",0), "weight": d.get("weight",0),
-                "is_extra": False,
-                "ingredients": [{"name": ing.get("name",""), "name_th": ing.get("name_th", ing.get("name","")),
-                    "name_en": ing.get("name_en",""), "confidence": ing.get("confidence",0),
-                    "weight": ing.get("weight",0)} for ing in d.get("ingredients", [])],
-            })
-        for d in extra:
-            dishes_json_list.append({
-                "name": d.get("name",""), "name_th": d.get("name_th", d.get("name","")),
-                "name_en": d.get("name_en",""), "price": d.get("price",0),
-                "confidence": d.get("confidence",0), "weight": d.get("weight",0),
-                "is_extra": True, "ingredients": [],
-            })
-        dishes_json = json.dumps(dishes_json_list, ensure_ascii=False)
+        # รวมชื่อทั้งเมนูหลัก + ส่วนประกอบ (ingredients) เป็นข้อความ
         all_names = []
-        for d in dishes_json_list:
-            all_names.append(d["name_th"] or d["name"])
-            for ing in d.get("ingredients", []):
-                n = ing.get("name_th") or ing.get("name", "")
-                if n:
-                    all_names.append(n)
+        for d in dishes:
+            all_names.append(d.get('name_th', d.get('name', '')))
+            for ing in d.get('ingredients', []):
+                ing_name = ing.get('name_th', ing.get('name', ''))
+                if ing_name:
+                    all_names.append(ing_name)
         dishes_str = ", ".join(all_names)
-        conf_str = ", ".join(
-            f"{d['name_th'] or d['name']}:{round(d['confidence']*100)}%"
-            for d in dishes_json_list
-        )
+
+        # รวม confidence ทั้งเมนูหลัก + ingredients
+        conf_parts = []
+        for d in dishes:
+            name = d.get('name_th', d.get('name', ''))
+            conf_parts.append(f"{name}:{round(d.get('confidence', 0)*100)}%")
+            for ing in d.get('ingredients', []):
+                ing_name = ing.get('name_th', ing.get('name', ''))
+                if ing_name:
+                    conf_parts.append(f"{ing_name}:{round(ing.get('confidence', 0)*100)}%")
+        conf_str = ", ".join(conf_parts)
 
         # เชื่อมต่อและบันทึกลงฐานข้อมูล
         conn = sqlite3.connect(str(DB_PATH))

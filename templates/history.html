@@ -538,14 +538,23 @@ async function viewDetail(id) {
 
     _el('modal-title').textContent = `Session #${s.id}`;
 
-    const itemRows = (s.items||[]).map(it => `
-      <tr>
-        <td>${it.food_name_th || it.food_name}</td>
+    const itemRows = (s.items||[]).map(it => {
+      const isIng = it.is_ingredient;
+      const nameCell = isIng
+        ? `<span style="padding-left:16px;color:var(--muted);font-size:.8rem">↳ ${it.food_name_th || it.food_name}</span>`
+        : `<strong>${it.food_name_th || it.food_name}</strong>`;
+      const priceCell = isIng
+        ? `<span style="color:var(--muted);font-size:.72rem">—</span>`
+        : `฿${(it.price||0).toFixed(0)}`;
+      const bgStyle = isIng ? 'background:rgba(0,0,0,0.15);' : '';
+      return `<tr style="${bgStyle}">
+        <td>${nameCell}</td>
         <td style="color:var(--muted);font-size:.72rem">${it.food_name_en || ''}</td>
-        <td><span class="conf-badge">${Math.round((it.confidence||0)*100)}%</span></td>
+        <td><span class="conf-badge">${it.confidence>0?Math.round(it.confidence*100)+'%':'—'}</span></td>
         <td style="font-family:var(--font-mono);font-size:.76rem;color:var(--muted)">${it.weight_grams>0?it.weight_grams.toFixed(0)+'g':'—'}</td>
-        <td style="font-family:var(--font-mono);color:var(--green)">฿${(it.price||0).toFixed(0)}</td>
-      </tr>`).join('');
+        <td style="font-family:var(--font-mono);color:var(--green)">${priceCell}</td>
+      </tr>`;
+    }).join('');
 
     const imgUrl = s.filename ? `/confirmed/annotated_${s.filename}` : null;
     _el('modal-body').innerHTML = `
