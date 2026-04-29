@@ -30,8 +30,8 @@ class PiCamera:
         self._proc = subprocess.Popen([
             "rpicam-vid",
             "-t", "0",
-            "--width", "1280",
-            "--height", "720",
+            "--width", "1080",     # ← แก้ความกว้างเป็น 1920
+            "--height", "1920",    # ← แก้ความสูงเป็น 1080
             "--framerate", "30",
             "--codec", "mjpeg",
             "--quality", "95",

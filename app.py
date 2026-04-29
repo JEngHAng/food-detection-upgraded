@@ -3,6 +3,7 @@ import time
 import os
 import sqlite3
 import json
+import shutil
 from flask import Flask, jsonify, render_template, send_from_directory, Response, request
 from flask_cors import CORS
 from config import ServerConfig, DB_PATH, UPLOAD_DIR
@@ -10,7 +11,15 @@ from pathlib import Path
 
 CONFIRMED_DIR = UPLOAD_DIR.parent / "confirmed"
 CONFIRMED_DIR.mkdir(exist_ok=True)
-from database import init_db
+
+# ── นำเข้าฟังก์ชันจัดการฐานข้อมูลจาก database.py ──────────────────
+from database import (
+    init_db, 
+    save_detection_record, 
+    get_all_detections, 
+    get_session_by_id, 
+    get_db_connection
+)
 from detector import FoodDetector
 from hardware.camera import PiCamera
 from routes.weight import weight_bp          # ← Weight / SSE blueprint
@@ -109,122 +118,91 @@ def detect_api():
         "pending_file": filename
     })
 
-# 🚩 เพิ่ม API สำหรับบันทึกข้อมูลลง SQLite พร้อมระบบ Print แจ้งเตือน
+# 🚩 API สำหรับบันทึกข้อมูล (แก้ให้รับค่าน้ำหนักและรูปภาพได้ถูกต้อง 100%)
 @app.route("/api/confirm", methods=["POST"])
 def confirm_api():
     try:
         data = request.get_json()
-        filename = data.get("filename")
-        total_price = data.get("total_price", 0)
-        weight = data.get("weight", 0)
-        dishes     = data.get("dishes", [])
-        detections = data.get("detections", [])
+        
+        # 1. บังคับชนิดตัวแปรป้องกันบั๊ก
+        filename = str(data.get("filename", ""))
+        total_price = float(data.get("total_price", 0.0))
+        weight = float(data.get("weight", 0.0))
+        dishes = data.get("dishes", [])
+        raw_detections = data.get("detections", [])
 
-        # หา class ที่ถูกใช้ในเมนูหรือ ingredients แล้ว
+        # แจ้งเตือนใน Terminal เพื่อตรวจสอบความถูกต้อง
+        print(f"\n📥 [DEBUG] กำลังเตรียมบันทึกข้อมูล:")
+        print(f"   - ไฟล์รูปภาพ: {filename}")
+        print(f"   - น้ำหนักรวม: {weight} กรัม")
+        print(f"   - ราคารวม: {total_price} บาท")
+
+        if not filename:
+             return jsonify({"success": False, "error": "ไม่ได้ระบุชื่อไฟล์รูปภาพ"}), 400
+
         used_names = set()
+        items_to_save = []
+
+        # 2. รวบรวมข้อมูลจากจานหลักและส่วนผสม
         for d in dishes:
             used_names.add(d.get("name", ""))
+            items_to_save.append({
+                "name": d.get("name", "unknown"),
+                "name_th": d.get("name_th", ""),
+                "name_en": d.get("name_en", ""),
+                "confidence": float(d.get("confidence", 0.0)),
+                "price": float(d.get("price", 0.0)),
+                "weight": float(d.get("weight", 0.0)),
+                "bbox": d.get("bbox", {})
+            })
             for ing in d.get("ingredients", []):
                 used_names.add(ing.get("name", ""))
+                items_to_save.append({
+                    "name": ing.get("name", "unknown"),
+                    "name_th": ing.get("name_th", ""),
+                    "name_en": ing.get("name_en", ""),
+                    "confidence": float(ing.get("confidence", 0.0)),
+                    "price": 0.0,
+                    "weight": float(ing.get("weight", 0.0)),
+                    "bbox": d.get("bbox", {})
+                })
 
-        # detection ที่ YOLO เจอแต่ยังไม่อยู่ในเมนูใดเลย
-        extra = [d for d in detections if d.get("name", "") not in used_names]
-
-        # สร้าง dishes_json_list รวมเมนูหลัก + ingredients + extra
-        dishes_json_list = []
-        for d in dishes:
-            dishes_json_list.append({
-                "name": d.get("name",""), "name_th": d.get("name_th", d.get("name","")),
-                "name_en": d.get("name_en",""), "price": d.get("price",0),
-                "confidence": d.get("confidence",0), "weight": d.get("weight",0),
-                "is_extra": False,
-                "ingredients": [{"name": ing.get("name",""), "name_th": ing.get("name_th", ing.get("name","")),
-                    "name_en": ing.get("name_en",""), "confidence": ing.get("confidence",0),
-                    "weight": ing.get("weight",0)} for ing in d.get("ingredients", [])],
-            })
+        # 3. รวบรวมสิ่งที่เจอแต่ไม่อยู่ในเมนู (Extra)
+        extra = [d for d in raw_detections if d.get("name", "") not in used_names]
         for d in extra:
-            dishes_json_list.append({
-                "name": d.get("name",""), "name_th": d.get("name_th", d.get("name","")),
-                "name_en": d.get("name_en",""), "price": d.get("price",0),
-                "confidence": d.get("confidence",0), "weight": d.get("weight",0),
-                "is_extra": True, "ingredients": [],
+            items_to_save.append({
+                "name": d.get("name", "unknown"),
+                "name_th": d.get("name_th", ""),
+                "name_en": d.get("name_en", ""),
+                "confidence": float(d.get("confidence", 0.0)),
+                "price": float(d.get("price", 0.0)),
+                "weight": float(d.get("weight", 0.0)),
+                "bbox": d.get("bbox", {})
             })
-        dishes_json = json.dumps(dishes_json_list, ensure_ascii=False)
-        all_names = []
-        for d in dishes_json_list:
-            all_names.append(d["name_th"] or d["name"])
-            for ing in d.get("ingredients", []):
-                n = ing.get("name_th") or ing.get("name", "")
-                if n:
-                    all_names.append(n)
-        dishes_str = ", ".join(all_names)
-        conf_str = ", ".join(
-            f"{d['name_th'] or d['name']}:{round(d['confidence']*100)}%"
-            for d in dishes_json_list
+
+        # 4. บันทึกผ่าน database.py 
+        session_id = save_detection_record(
+            db_path=str(DB_PATH),
+            image_path=filename,       # รูปภาพจะถูกบันทึกตรงนี้
+            detections=items_to_save,
+            total_price=total_price,
+            weight=weight,             # น้ำหนักจะถูกบันทึกตรงนี้
+            notes=""
         )
-
-        # เชื่อมต่อและบันทึกลงฐานข้อมูล
-        conn = sqlite3.connect(str(DB_PATH))
-        cursor = conn.cursor()
         
-        # สร้าง Table หากยังไม่มี
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS detections (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                filename TEXT,
-                dishes TEXT,
-                confidence TEXT,
-                weight REAL,
-                total_price REAL,
-                timestamp TEXT DEFAULT (datetime('now', 'localtime')),
-                dishes_json TEXT
-            )
-        ''')
-        # เพิ่ม column dishes_json ถ้า DB เก่าไม่มี
-        try:
-            cursor.execute("ALTER TABLE detections ADD COLUMN dishes_json TEXT")
-        except Exception:
-            pass  # column มีอยู่แล้ว ไม่ต้องทำอะไร
-
-        dishes_json = json.dumps([
-            {
-                "name":       d.get("name", ""),
-                "name_th":    d.get("name_th", d.get("name", "")),
-                "name_en":    d.get("name_en", ""),
-                "price":      d.get("price", 0),
-                "confidence": d.get("confidence", 0),
-                "weight":     d.get("weight", 0),
-            }
-            for d in dishes
-        ], ensure_ascii=False)
-
-        cursor.execute('''
-            INSERT INTO detections (filename, dishes, confidence, weight, total_price, dishes_json)
-            VALUES (?, ?, ?, ?, ?, ?)
-        ''', (filename, dishes_str, conf_str, weight, total_price, dishes_json))
-        
-        conn.commit()
-        conn.close()
-        
-        # 🚩 แสดงผลใน Terminal เพื่อให้เรารู้ว่าดาต้าเข้ามาถึง Python แล้ว
-        print(f"\n=====================================")
-        print(f"✅ บันทึกข้อมูลสำเร็จ! ไฟล์: {filename}")
-        print(f"👉 เมนู: {dishes_str}")
-        print(f"👉 ราคารวม: {total_price} บาท | น้ำหนัก: {weight} กรัม")
-        print(f"=====================================\n")
-        
-        # ย้ายรูป annotated ไปโฟลเดอร์ confirmed/
-        import shutil
+        # 5. ย้าย/ลบ ไฟล์รูปภาพ
         annotated = os.path.join(app.config["UPLOAD_FOLDER"], f"annotated_{filename}")
         if os.path.exists(annotated):
             shutil.move(annotated, str(CONFIRMED_DIR / f"annotated_{filename}"))
-        # ลบรูปต้นฉบับ
+        
         orig = os.path.join(app.config["UPLOAD_FOLDER"], filename)
         if os.path.exists(orig):
             os.remove(orig)
-        return jsonify({"success": True, "message": "บันทึกข้อมูลลง SQLite เรียบร้อย"})
+            
+        print(f"✅ บันทึกข้อมูลลงฐานข้อมูลสำเร็จ! (Session ID: {session_id})\n")
+        return jsonify({"success": True, "message": "บันทึกข้อมูลเรียบร้อย", "session_id": session_id})
+
     except Exception as e:
-        # 🚩 ถ้าพัง จะโชว์สาเหตุออกมาที่หน้าจอ Terminal ทันที
         print(f"\n❌ ปัญหาฐานข้อมูล! สาเหตุ: {e}\n")
         return jsonify({"success": False, "error": str(e)}), 500
 
@@ -246,7 +224,7 @@ def cleanup_api():
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
 
-# Route เพื่อให้ Browser เข้ามาดึงรูปภาพพรีวิวไปโชว์ได้
+
 @app.route("/uploads/<path:filename>")
 def uploaded_file(filename):
     return send_from_directory(app.config["UPLOAD_FOLDER"], filename)
@@ -256,175 +234,95 @@ def uploaded_file(filename):
 def history_page():
     return render_template("history.html")
 
+# 🚩 ดึงประวัติทั้งหมด (ทำ Data Mapping เพื่อให้รูปและน้ำหนักแสดงบนหน้าเว็บเก่าได้)
 @app.route("/api/history")
 def api_history():
     try:
+        page = int(request.args.get("page", 1))
         per_page = int(request.args.get("per_page", 50))
-        conn = sqlite3.connect(str(DB_PATH))
-        conn.row_factory = sqlite3.Row
-        total = conn.execute("SELECT COUNT(*) FROM detections").fetchone()[0]
-        rows  = conn.execute(
-            "SELECT * FROM detections ORDER BY timestamp DESC LIMIT ?", (per_page,)
-        ).fetchall()
-        sessions = []
-        for r in rows:
-            s = dict(r)
-            s["id"]           = r["id"]
-            s["session_uuid"] = r["filename"]
-            s["created_at"]   = r["timestamp"]
-            s["total_price"]  = r["total_price"]
-            s["weight_grams"] = r["weight"]
-            s["item_count"]   = len(r["dishes"].split(",")) if r["dishes"] else 0
-            s["notes"]        = ""
-            # ใช้ dishes_json ถ้ามี (เก็บข้อมูลครบทุก field) ไม่งั้น fallback string
-            raw_json = r["dishes_json"] if "dishes_json" in r.keys() else None
-            if raw_json:
-                try:
-                    parsed = json.loads(raw_json)
-                    s["items"] = [
-                        {
-                            "food_name":    p.get("name", ""),
-                            "food_name_th": p.get("name_th", p.get("name", "")),
-                            "food_name_en": p.get("name_en", ""),
-                            "confidence":   p.get("confidence", 0),
-                            "price":        p.get("price", 0),
-                            "weight_grams": p.get("weight", 0),
-                        }
-                        for p in parsed
-                    ]
-                except Exception:
-                    raw_json = None
-            if not raw_json:
-                s["items"] = [
-                    {"food_name": d.strip(), "food_name_th": d.strip(),
-                     "food_name_en": "", "confidence": 0, "price": 0, "weight_grams": 0}
-                    for d in (r["dishes"] or "").split(",") if d.strip()
-                ]
-            sessions.append(s)
-        conn.close()
-        return jsonify({"success": True, "data": {"sessions": sessions, "total": total}})
+        
+        # ดึงข้อมูลจาก 2 ตาราง
+        result = get_all_detections(str(DB_PATH), page=page, per_page=per_page)
+        
+        # --- ทำ Data Mapping แปลงกลับให้หน้าเว็บหาตัวแปรเจอ ---
+        for session in result.get("sessions", []):
+            session["session_uuid"] = session.get("image_path", "")
+            session["filename"] = session.get("image_path", "")
+            session["weight"] = session.get("weight_grams", 0.0)
+            session["timestamp"] = session.get("created_at", "")
+            
+            for item in session.get("items", []):
+                item["weight"] = item.get("weight_grams", 0.0)
+        
+        return jsonify({"success": True, "data": result})
     except Exception as e:
         return jsonify({"success": False, "data": {"sessions": [], "total": 0}, "error": str(e)})
 
+# 🚩 ดึงประวัติเฉพาะบิล (ทำ Data Mapping เหมือนกัน)
 @app.route("/api/history/<int:session_id>")
 def api_history_detail(session_id):
     try:
-        conn = sqlite3.connect(str(DB_PATH))
-        conn.row_factory = sqlite3.Row
-        row = conn.execute("SELECT * FROM detections WHERE id=?", (session_id,)).fetchone()
-        conn.close()
-        if not row:
+        session_data = get_session_by_id(str(DB_PATH), session_id)
+        if not session_data:
             return jsonify({"success": False, "error": "Not found"}), 404
-        s = dict(row)
-        s["session_uuid"] = row["filename"]
-        s["created_at"]   = row["timestamp"]
-        s["weight_grams"] = row["weight"]
-        s["item_count"]   = len(row["dishes"].split(",")) if row["dishes"] else 0
-        s["notes"]        = ""
-        # parse confidence จาก string เช่น "ข้าวมันไก่ต้ม:58%"
-        conf_map = {}
-        for c in (row["confidence"] or "").split(","):
-            c = c.strip()
-            if ":" in c:
-                name, pct = c.rsplit(":", 1)
-                try:
-                    conf_map[name.strip()] = float(pct.replace("%","")) / 100
-                except:
-                    pass
-
-        raw_json = row["dishes_json"] if "dishes_json" in row.keys() else None
-        if raw_json:
-            try:
-                parsed = json.loads(raw_json)
-                s["items"] = [
-                    {
-                        "food_name":    p.get("name", ""),
-                        "food_name_th": p.get("name_th", p.get("name", "")),
-                        "food_name_en": p.get("name_en", ""),
-                        "confidence":   p.get("confidence", 0),
-                        "price":        p.get("price", 0),
-                        "weight_grams": p.get("weight", 0),
-                    }
-                    for p in parsed
-                ]
-            except Exception:
-                raw_json = None
-        if not raw_json:
-            s["items"] = [
-                {
-                    "food_name": d.strip(),
-                    "food_name_th": d.strip(),
-                    "food_name_en": "",
-                    "confidence": conf_map.get(d.strip(), 0),
-                    "price": 0,
-                    "weight_grams": 0
-                }
-                for d in (row["dishes"] or "").split(",") if d.strip()
-            ]
-        return jsonify({"success": True, "data": s})
+            
+        # --- ทำ Data Mapping ---
+        session_data["session_uuid"] = session_data.get("image_path", "")
+        session_data["filename"] = session_data.get("image_path", "")
+        session_data["weight"] = session_data.get("weight_grams", 0.0)
+        session_data["timestamp"] = session_data.get("created_at", "")
+        for item in session_data.get("items", []):
+            item["weight"] = item.get("weight_grams", 0.0)
+            
+        return jsonify({"success": True, "data": session_data})
     except Exception as e:
         return jsonify({"success": False, "error": str(e)})
 
+# 🚩 ลบประวัติ
 @app.route("/api/history/<int:session_id>", methods=["DELETE"])
 def api_history_delete(session_id):
     try:
-        conn = sqlite3.connect(str(DB_PATH))
-        conn.execute("DELETE FROM detections WHERE id=?", (session_id,))
+        conn = get_db_connection(str(DB_PATH))
+        # ด้วย ON DELETE CASCADE มันจะลบรายการใน detection_items ให้ด้วยอัตโนมัติ
+        conn.execute("DELETE FROM detection_sessions WHERE id=?", (session_id,))
         conn.commit()
         conn.close()
         return jsonify({"success": True})
     except Exception as e:
         return jsonify({"success": False, "error": str(e)})
 
+# 🚩 ดึงสถิติ
 @app.route("/api/stats")
 def api_stats():
     try:
-        from utils import load_menu
-        from config import MENU_PATH
-        menu = load_menu(MENU_PATH)
-
-        # รวมชื่อเมนูหลักทั้งหมด (sub-menus + base)
-        main_names = set()
-        base_names = set()  # ชื่อ base เช่น "ข้าวมันไก่"
-        for k, v in menu.items():
-            if isinstance(v, dict) and v.get("is_main"):
-                if "menus" in v:
-                    for sub in v["menus"]:
-                        main_names.add(sub["name_th"])
-                    base_names.add(v["name_th"])
-                else:
-                    main_names.add(v["name_th"])
-
-        conn = sqlite3.connect(str(DB_PATH))
-        conn.row_factory = sqlite3.Row
-        total_count   = conn.execute("SELECT COUNT(*) FROM detections").fetchone()[0]
-        total_revenue = conn.execute("SELECT COALESCE(SUM(total_price),0) FROM detections").fetchone()[0]
-        avg_price     = conn.execute("SELECT COALESCE(AVG(total_price),0) FROM detections").fetchone()[0]
-        avg_weight    = conn.execute("SELECT COALESCE(AVG(weight),0) FROM detections").fetchone()[0]
-        rows = conn.execute("SELECT dishes FROM detections WHERE dishes != ''").fetchall()
+        conn = get_db_connection(str(DB_PATH))
+        
+        # สรุปภาพรวมจากตาราง sessions
+        total_count   = conn.execute("SELECT COUNT(*) FROM detection_sessions").fetchone()[0]
+        total_revenue = conn.execute("SELECT COALESCE(SUM(total_price),0) FROM detection_sessions").fetchone()[0]
+        avg_price     = conn.execute("SELECT COALESCE(AVG(total_price),0) FROM detection_sessions").fetchone()[0]
+        avg_weight    = conn.execute("SELECT COALESCE(AVG(weight_grams),0) FROM detection_sessions").fetchone()[0]
+        
+        # หายอดนิยมจากตาราง items จัดกลุ่มด้วยชื่อเมนู
+        rows = conn.execute("""
+            SELECT COALESCE(NULLIF(food_name_th, ''), food_name) as name, COUNT(*) as count
+            FROM detection_items
+            WHERE name != 'unknown' AND name != ''
+            GROUP BY name
+            ORDER BY count DESC
+            LIMIT 5
+        """).fetchall()
+        
         conn.close()
 
-        # สร้าง mapping ชื่อเก่า → ชื่อใหม่
-        # เช่น "ข้าวมันไก่" → "ข้าวมันไก่ (ไม่ระบุ)"
-        freq = {}
-        for row in rows:
-            for dish in row["dishes"].split(","):
-                dish = dish.strip()
-                if not dish:
-                    continue
-                if dish in main_names:
-                    freq[dish] = freq.get(dish, 0) + 1
-                elif dish in base_names:
-                    label = dish
-                    freq[label] = freq.get(label, 0) + 1
+        top_menus = [{"name": r["name"], "count": r["count"]} for r in rows]
 
-        top_menus = sorted(freq.items(), key=lambda x: x[1], reverse=True)[:5]
         return jsonify({
             "total_count":   total_count,
             "total_revenue": total_revenue,
             "avg_price":     avg_price,
             "avg_weight":    avg_weight,
-            "top_menus":     [{"name": k, "count": v} for k, v in top_menus],
+            "top_menus":     top_menus,
         })
     except Exception as e:
         return jsonify({"total_count":0,"total_revenue":0,"avg_price":0,"avg_weight":0,"top_menus":[],"error":str(e)})
