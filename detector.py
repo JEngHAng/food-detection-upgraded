@@ -130,7 +130,7 @@ class FoodDetector:
         """
         จับคู่ class ที่ detect ได้กับเมนูใน menu.json
         คืน dict ของเมนูที่ตรงที่สุด หรือ None ถ้าไม่พบ
-        
+
         Logic:
           1. หา class หลัก (is_main=True) ที่ detect เจอ
           2. สำหรับแต่ละ main class ดู sub-menus (ถ้ามี)
@@ -220,7 +220,11 @@ class FoodDetector:
                     if score > best_score:
                         best_score = score
                         best_sub = sub
-            
+                # ถ้าไม่มี sub ไหน match เลย ให้เลือก sub แรกเป็น default
+                # (กรณี YOLO เจอ stir_fried_basil แต่ minced_pork confidence ต่ำกว่า threshold)
+                if best_sub is None and item["menus"]:
+                    best_sub = item["menus"][0]
+
             if best_sub:
                 match = {
                     "class_name": main_class,
@@ -304,7 +308,8 @@ class FoodDetector:
                 self._draw_box_pil(pil_img, det, i)
 
             annotated_path = self._save_annotated_pil(pil_img, image_path)
-            # จับคู่เมนูจาก ingredients (รองรับหลายเมนู)
+
+            # ── จับคู่เมนูจาก is_main + ingredients (ถูกต้อง) ──
             menu_results = self._build_menu_result(detections)
             total_price = sum(m["price"] for m in menu_results) if menu_results else sum(d["price"] for d in detections)
 
@@ -317,14 +322,19 @@ class FoodDetector:
                 "mock": False,
                 "matched_menus": menu_results,
             }
-            out["menus"] = self._build_menus_hierarchy(detections)
+            # ── แก้: ใช้ menu_results แทน _build_menus_hierarchy ──
+            # _build_menus_hierarchy ดูแค่ขนาด bbox ไม่ได้ดู is_main
+            # ทำให้ noodle (bbox ใหญ่) ชนะ stir_fried_basil เสมอ
+            out["menus"] = menu_results
             return out
 
         except Exception as exc:
             logger.exception("YOLO detection error")
             return {"success": False, "error": str(exc)}
 
-    # ── Menu hierarchy ─────────────────────────────────────
+    # ── Menu hierarchy (ไม่ใช้แล้ว — เก็บไว้ reference) ────
+    # _build_menus_hierarchy ถูกแทนที่ด้วย _build_menu_result
+    # เพราะ hierarchy ดูแค่ขนาด bbox ไม่ได้ดู is_main / ingredients
 
     @staticmethod
     def _bbox_area(b: dict) -> float:

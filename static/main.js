@@ -190,9 +190,7 @@ function renderResult(data) {
     const ri = getEl("result-img");
     if (ri) ri.src = data.annotated_image;
 
-    // แสดงน้ำหนักที่ชั่งได้ ณ เวลาที่ผลออกมา
-    const weightEl = getEl("result-weight-display");
-    if (weightEl) weightEl.textContent = _lastWeightG.toFixed(1);
+    const weightG = _lastWeightG;
 
     const list = getEl("menu-list");
     if (list) {
@@ -217,9 +215,12 @@ function renderResult(data) {
             <div class="menu-card" style="background:#6d28d9;border-radius:10px;margin-bottom:10px;color:white;overflow:hidden;">
                 <div style="padding:14px 16px;display:flex;justify-content:space-between;align-items:center;cursor:${hasIngredients?'pointer':'default'};"
                      onclick="${hasIngredients?`toggleIng(${idx})`:''}">
-                    <div style="display:flex;flex-direction:column;gap:2px;">
+                    <div style="display:flex;flex-direction:column;gap:4px;">
                         <span style="font-weight:700;font-size:1rem;">${dish.name_th || dish.name}</span>
-                        ${conf ? `<span style="font-size:0.72rem;opacity:0.75;">ความแม่นยำ ${conf}%</span>` : ''}
+                        <div style="display:flex;align-items:center;gap:8px;">
+                            ${conf ? `<span style="font-size:0.72rem;opacity:0.75;">ความแม่นยำ ${conf}%</span>` : ''}
+                            <span style="font-size:0.78rem;color:#fdba74;font-weight:600;">️น้ำหนัก ${weightG.toFixed(1)} กรัม</span>
+                        </div>
                     </div>
                     <div style="display:flex;align-items:center;gap:10px;">
                         <span style="font-weight:bold;font-size:1rem;">฿${Math.round(dish.price)}</span>
