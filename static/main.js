@@ -135,7 +135,7 @@ async function startDetection() {
         const res  = await fetch("/api/detect-captured", {
             method:  "POST",
             headers: { "Content-Type": "application/json" },
-            body:    JSON.stringify({ filename: piCapturedFilename }),
+            body:    JSON.stringify({ filename: piCapturedFilename, weight: _lastWeightG }),
         });
         const data = await res.json();
         if (data.success) {
@@ -217,6 +217,13 @@ function renderResult(data) {
                      onclick="${hasIngredients?`toggleIng(${idx})`:''}">
                     <div style="display:flex;flex-direction:column;gap:4px;">
                         <span style="font-weight:700;font-size:1rem;">${dish.name_th || dish.name}</span>
+                        ${(() => {
+                          const pe = dish.portion_eval;
+                          if (!pe || !pe.ratio_pct) return '';
+                          const bgMap = { green: 'rgba(16,185,129,0.25)', red: 'rgba(239,68,68,0.25)', blue: 'rgba(59,130,246,0.25)', gray: 'rgba(255,255,255,0.1)' };
+                          const diff = pe.diff_g > 0 ? `+${pe.diff_g}g` : `${pe.diff_g}g`;
+                          return `<div style="margin-top:6px;padding:6px 10px;border-radius:8px;background:${bgMap[pe.color]};display:flex;justify-content:space-between;align-items:center;"><span style="font-size:0.82rem;">${pe.icon} ${pe.status}</span><span style="font-size:0.75rem;opacity:0.85;">${pe.actual_g}g / ${pe.standard_g}g (${diff})</span></div>`;
+                        })()}
                         <div style="display:flex;align-items:center;gap:8px;">
                             ${conf ? `<span style="font-size:0.72rem;opacity:0.75;">ความแม่นยำ ${conf}%</span>` : ''}
                             <span style="font-size:0.78rem;color:#fdba74;font-weight:600;">️น้ำหนัก ${weightG.toFixed(1)} กรัม</span>
@@ -258,7 +265,7 @@ async function rescan() {
         const res  = await fetch("/api/detect-captured", {
             method:  "POST",
             headers: { "Content-Type": "application/json" },
-            body:    JSON.stringify({ filename: piCapturedFilename }),
+            body:    JSON.stringify({ filename: piCapturedFilename, weight: _lastWeightG }),
         });
         const data = await res.json();
         if (data.success) {
