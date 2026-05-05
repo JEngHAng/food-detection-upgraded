@@ -4,6 +4,8 @@ import os
 import sqlite3
 import json
 import shutil
+import threading
+import signal
 from flask import Flask, jsonify, render_template, send_from_directory, Response, request
 from flask_cors import CORS
 from config import ServerConfig, DB_PATH, UPLOAD_DIR
@@ -44,9 +46,8 @@ app.camera = PiCamera()
 from hardware.loadcell import LoadCell
 app.loadcell = LoadCell()
 app.tare_status = "pending"  # pending, running, done, failed
-import threading
+
 def auto_tare():
-    import time
     time.sleep(3)
     app.tare_status = "running"
     if app.loadcell.is_available:
@@ -87,7 +88,6 @@ def capture_api():
     path = app.camera.capture()
     if path:
         filename = os.path.basename(path)
-        # ส่ง image_url พร้อม Timestamp เพื่อป้องกัน Browser จำภาพเก่า (Cache)
         return jsonify({
             "success": True, 
             "filename": filename,
@@ -114,24 +114,21 @@ def detect_api():
         "total_price": total_price,
         "annotated_image": f"/uploads/annotated_{filename}?t={int(time.time())}",
         "dishes": matched_menus,
-        "detections": detections,   # ← raw detections ทุกอย่างที่ YOLO เจอ
+        "detections": detections,
         "pending_file": filename
     })
 
-# 🚩 API สำหรับบันทึกข้อมูล (แก้ให้รับค่าน้ำหนักและรูปภาพได้ถูกต้อง 100%)
 @app.route("/api/confirm", methods=["POST"])
 def confirm_api():
     try:
         data = request.get_json()
         
-        # 1. บังคับชนิดตัวแปรป้องกันบั๊ก
         filename = str(data.get("filename", ""))
         total_price = float(data.get("total_price", 0.0))
         weight = float(data.get("weight", 0.0))
         dishes = data.get("dishes", [])
         raw_detections = data.get("detections", [])
 
-        # แจ้งเตือนใน Terminal เพื่อตรวจสอบความถูกต้อง
         print(f"\n📥 [DEBUG] กำลังเตรียมบันทึกข้อมูล:")
         print(f"   - ไฟล์รูปภาพ: {filename}")
         print(f"   - น้ำหนักรวม: {weight} กรัม")
@@ -143,7 +140,6 @@ def confirm_api():
         used_names = set()
         items_to_save = []
 
-        # 2. รวบรวมข้อมูลจากจานหลักและส่วนผสม
         for d in dishes:
             used_names.add(d.get("name", ""))
             items_to_save.append({
@@ -167,7 +163,6 @@ def confirm_api():
                     "bbox": d.get("bbox", {})
                 })
 
-        # 3. รวบรวมสิ่งที่เจอแต่ไม่อยู่ในเมนู (Extra)
         extra = [d for d in raw_detections if d.get("name", "") not in used_names]
         for d in extra:
             items_to_save.append({
@@ -180,17 +175,15 @@ def confirm_api():
                 "bbox": d.get("bbox", {})
             })
 
-        # 4. บันทึกผ่าน database.py 
         session_id = save_detection_record(
             db_path=str(DB_PATH),
-            image_path=filename,       # รูปภาพจะถูกบันทึกตรงนี้
+            image_path=filename,
             detections=items_to_save,
             total_price=total_price,
-            weight=weight,             # น้ำหนักจะถูกบันทึกตรงนี้
+            weight=weight,
             notes=""
         )
         
-        # 5. ย้าย/ลบ ไฟล์รูปภาพ
         annotated = os.path.join(app.config["UPLOAD_FOLDER"], f"annotated_{filename}")
         if os.path.exists(annotated):
             shutil.move(annotated, str(CONFIRMED_DIR / f"annotated_{filename}"))
@@ -206,10 +199,8 @@ def confirm_api():
         print(f"\n❌ ปัญหาฐานข้อมูล! สาเหตุ: {e}\n")
         return jsonify({"success": False, "error": str(e)}), 500
 
-
 @app.route("/api/cleanup", methods=["POST"])
 def cleanup_api():
-    """ลบรูปที่ยังไม่ได้ยืนยัน"""
     try:
         data = request.get_json() or {}
         filename = data.get("filename")
@@ -224,27 +215,22 @@ def cleanup_api():
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
 
-
 @app.route("/uploads/<path:filename>")
 def uploaded_file(filename):
     return send_from_directory(app.config["UPLOAD_FOLDER"], filename)
-
 
 @app.route("/history")
 def history_page():
     return render_template("history.html")
 
-# 🚩 ดึงประวัติทั้งหมด (ทำ Data Mapping เพื่อให้รูปและน้ำหนักแสดงบนหน้าเว็บเก่าได้)
 @app.route("/api/history")
 def api_history():
     try:
         page = int(request.args.get("page", 1))
         per_page = int(request.args.get("per_page", 50))
         
-        # ดึงข้อมูลจาก 2 ตาราง
         result = get_all_detections(str(DB_PATH), page=page, per_page=per_page)
         
-        # --- ทำ Data Mapping แปลงกลับให้หน้าเว็บหาตัวแปรเจอ ---
         for session in result.get("sessions", []):
             session["session_uuid"] = session.get("image_path", "")
             session["filename"] = session.get("image_path", "")
@@ -258,7 +244,6 @@ def api_history():
     except Exception as e:
         return jsonify({"success": False, "data": {"sessions": [], "total": 0}, "error": str(e)})
 
-# 🚩 ดึงประวัติเฉพาะบิล (ทำ Data Mapping เหมือนกัน)
 @app.route("/api/history/<int:session_id>")
 def api_history_detail(session_id):
     try:
@@ -266,7 +251,6 @@ def api_history_detail(session_id):
         if not session_data:
             return jsonify({"success": False, "error": "Not found"}), 404
             
-        # --- ทำ Data Mapping ---
         session_data["session_uuid"] = session_data.get("image_path", "")
         session_data["filename"] = session_data.get("image_path", "")
         session_data["weight"] = session_data.get("weight_grams", 0.0)
@@ -278,12 +262,10 @@ def api_history_detail(session_id):
     except Exception as e:
         return jsonify({"success": False, "error": str(e)})
 
-# 🚩 ลบประวัติ
 @app.route("/api/history/<int:session_id>", methods=["DELETE"])
 def api_history_delete(session_id):
     try:
         conn = get_db_connection(str(DB_PATH))
-        # ด้วย ON DELETE CASCADE มันจะลบรายการใน detection_items ให้ด้วยอัตโนมัติ
         conn.execute("DELETE FROM detection_sessions WHERE id=?", (session_id,))
         conn.commit()
         conn.close()
@@ -291,19 +273,16 @@ def api_history_delete(session_id):
     except Exception as e:
         return jsonify({"success": False, "error": str(e)})
 
-# 🚩 ดึงสถิติ
 @app.route("/api/stats")
 def api_stats():
     try:
         conn = get_db_connection(str(DB_PATH))
         
-        # สรุปภาพรวมจากตาราง sessions
         total_count   = conn.execute("SELECT COUNT(*) FROM detection_sessions").fetchone()[0]
         total_revenue = conn.execute("SELECT COALESCE(SUM(total_price),0) FROM detection_sessions").fetchone()[0]
         avg_price     = conn.execute("SELECT COALESCE(AVG(total_price),0) FROM detection_sessions").fetchone()[0]
         avg_weight    = conn.execute("SELECT COALESCE(AVG(weight_grams),0) FROM detection_sessions").fetchone()[0]
         
-        # หายอดนิยมจากตาราง items จัดกลุ่มด้วยชื่อเมนู
         rows = conn.execute("""
             SELECT COALESCE(NULLIF(food_name_th, ''), food_name) as name, COUNT(*) as count
             FROM detection_items
@@ -327,10 +306,27 @@ def api_stats():
     except Exception as e:
         return jsonify({"total_count":0,"total_revenue":0,"avg_price":0,"avg_weight":0,"top_menus":[],"error":str(e)})
 
-
 @app.route("/confirmed/<path:filename>")
 def confirmed_file(filename):
     return send_from_directory(str(CONFIRMED_DIR), filename)
+
+@app.route("/api/shutdown", methods=["POST"])
+def shutdown():
+    import threading, os, signal, time
+    
+    def close_web():
+        # รอ 0.5 วินาที เพื่อให้หน้าเว็บโหลดข้อความ "กำลังปิดระบบ..." เสร็จก่อน
+        time.sleep(0.5)
+        
+        # 1. คำสั่งบังคับปิดเฉพาะหน้าเว็บเบราว์เซอร์ Chromium (เทียบเท่าการกดกากบาท หรือ Ctrl+W)
+        os.system("killall chromium-browser")
+        os.system("killall chromium")
+        
+        # 2. ปิดโปรแกรมหลังบ้าน (Flask) เพื่อให้หยุดทำงาน (เครื่อง Pi ยังเปิดอยู่ปกติ)
+        os.kill(os.getpid(), signal.SIGTERM)
+
+    threading.Thread(target=close_web, daemon=True).start()
+    return jsonify({"success": True})
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=False)

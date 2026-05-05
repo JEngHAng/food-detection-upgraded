@@ -88,7 +88,7 @@ async function tareScale() {
         showLoading(false);
         if (btn) {
             btn.disabled = false;
-            btn.textContent = "⚖️ Tare (归零)";
+            btn.textContent = "⚖️ Tare";
             btn.style.opacity = "1";
         }
     }
@@ -135,7 +135,7 @@ async function startDetection() {
         const res  = await fetch("/api/detect-captured", {
             method:  "POST",
             headers: { "Content-Type": "application/json" },
-            body:    JSON.stringify({ filename: piCapturedFilename, weight: _lastWeightG }),
+            body:    JSON.stringify({ filename: piCapturedFilename }),
         });
         const data = await res.json();
         if (data.success) {
@@ -165,7 +165,7 @@ async function goToEnd() {
                 filename:    piCapturedFilename,
                 total_price: lastDetectionData.total_price,
                 dishes:      lastDetectionData.dishes,
-                detections:  lastDetectionData.detections || [],  // ← raw ทุกอย่างที่ YOLO เจอ
+                detections:  lastDetectionData.detections || [],
                 weight:      _lastWeightG,
             }),
         });
@@ -217,16 +217,9 @@ function renderResult(data) {
                      onclick="${hasIngredients?`toggleIng(${idx})`:''}">
                     <div style="display:flex;flex-direction:column;gap:4px;">
                         <span style="font-weight:700;font-size:1rem;">${dish.name_th || dish.name}</span>
-                        ${(() => {
-                          const pe = dish.portion_eval;
-                          if (!pe || !pe.ratio_pct) return '';
-                          const bgMap = { green: 'rgba(16,185,129,0.25)', red: 'rgba(239,68,68,0.25)', blue: 'rgba(59,130,246,0.25)', gray: 'rgba(255,255,255,0.1)' };
-                          const diff = pe.diff_g > 0 ? `+${pe.diff_g}g` : `${pe.diff_g}g`;
-                          return `<div style="margin-top:6px;padding:6px 10px;border-radius:8px;background:${bgMap[pe.color]};display:flex;justify-content:space-between;align-items:center;"><span style="font-size:0.82rem;">${pe.icon} ${pe.status}</span><span style="font-size:0.75rem;opacity:0.85;">${pe.actual_g}g / ${pe.standard_g}g (${diff})</span></div>`;
-                        })()}
                         <div style="display:flex;align-items:center;gap:8px;">
                             ${conf ? `<span style="font-size:0.72rem;opacity:0.75;">ความแม่นยำ ${conf}%</span>` : ''}
-                            <span style="font-size:0.78rem;color:#fdba74;font-weight:600;">️น้ำหนัก ${weightG.toFixed(1)} กรัม</span>
+                            <span style="font-size:0.78rem;color:#fdba74;font-weight:600;">⚖️ น้ำหนัก ${weightG.toFixed(1)} กรัม</span>
                         </div>
                     </div>
                     <div style="display:flex;align-items:center;gap:10px;">
@@ -253,7 +246,7 @@ function toggleIng(idx) {
 }
 
 // ══════════════════════════════════════════════════════
-// 5. ตรวจซ้ำ (Rescan) — ใช้รูปเดิม detect ใหม่
+// 5. ตรวจซ้ำ (Rescan)
 // ══════════════════════════════════════════════════════
 async function rescan() {
     if (!piCapturedFilename) {
@@ -265,7 +258,7 @@ async function rescan() {
         const res  = await fetch("/api/detect-captured", {
             method:  "POST",
             headers: { "Content-Type": "application/json" },
-            body:    JSON.stringify({ filename: piCapturedFilename, weight: _lastWeightG }),
+            body:    JSON.stringify({ filename: piCapturedFilename }),
         });
         const data = await res.json();
         if (data.success) {
@@ -332,6 +325,22 @@ function showToast(msg, type = "") {
         el.className   = `show ${type}`;
         setTimeout(() => el.className = "", 3000);
     }
+}
+
+// ══════════════════════════════════════════════════════
+// Shutdown
+// ══════════════════════════════════════════════════════
+async function confirmShutdown() {
+    showToast("⏹ กำลังปิดระบบ...", "error");
+    setTimeout(async () => {
+        await fetch("/api/shutdown", { method: "POST" });
+        document.body.innerHTML = `
+            <div style="display:flex;align-items:center;justify-content:center;height:100vh;background:#16172b;color:#e2e8f0;font-family:IBM Plex Sans Thai,sans-serif;flex-direction:column;gap:16px;">
+                <div style="font-size:2rem;">⏹</div>
+                <div style="font-size:1.2rem;font-weight:700;">ปิดระบบเรียบร้อย</div>
+                <div style="font-size:0.85rem;color:#94a3b8;">สามารถปิดหน้าต่างได้แล้ว</div>
+            </div>`;
+    }, 1000);
 }
 
 // ══════════════════════════════════════════════════════
