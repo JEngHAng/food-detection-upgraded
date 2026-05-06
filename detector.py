@@ -41,25 +41,20 @@ BOX_COLORS_RGB = [
 
 # ── ฟอนต์ภาษาไทย ──────────────────────────────────────────
 _FONT_CANDIDATES = [
-    # Raspberry Pi OS / Debian
     "/usr/share/fonts/opentype/tlwg/Loma.otf",
     "/usr/share/fonts/truetype/tlwg/Loma.ttf",
     "/usr/share/fonts/opentype/tlwg/Garuda.otf",
     "/usr/share/fonts/truetype/thai/Garuda.ttf",
-    # Ubuntu / Noto
     "/usr/share/fonts/truetype/noto/NotoSansThai-Regular.ttf",
     "/usr/share/fonts/truetype/noto/NotoSans-Regular.ttf",
-    # macOS
     "/Library/Fonts/Thonburi.ttf",
     "/System/Library/Fonts/Supplemental/Ayuthaya.ttf",
-    # Windows
     "C:/Windows/Fonts/tahoma.ttf",
     "C:/Windows/Fonts/arial.ttf",
 ]
 
 
 def _find_thai_font(size: int = 18) -> ImageFont.FreeTypeFont:
-    """หาฟอนต์ที่รองรับภาษาไทย คืน default ถ้าไม่พบ"""
     for path in _FONT_CANDIDATES:
         if Path(path).exists():
             try:
@@ -90,7 +85,6 @@ class FoodDetector:
     # ── Initialisation ─────────────────────────────────────
 
     def _load_model(self) -> YOLO | None:
-        """โหลด YOLOv8 model — คืน None แทน raise ถ้าไม่พบไฟล์"""
         try:
             if not MODEL_PATH.exists():
                 logger.error("Model file NOT FOUND at %s", MODEL_PATH)
@@ -111,7 +105,6 @@ class FoodDetector:
     # ── Public API ─────────────────────────────────────────
 
     def get_status(self) -> dict:
-        """คืนสถานะ — ใช้โดย status_bp"""
         return {
             "model_loaded": self.model is not None,
             "is_raspberry_pi": self._is_pi,
@@ -126,12 +119,7 @@ class FoodDetector:
             return {"success": False, "error": "Model not initialized"}
         return self._detect_yolo(image_path)
 
-
     def _match_menu(self, detected_classes: list[str]) -> dict:
-        """
-        จับคู่ class ที่ detect ได้กับเมนูใน menu.json
-        คืน dict ของเมนูที่ตรงที่สุด หรือ None ถ้าไม่พบ
-        """
         detected_set = set(detected_classes)
         best_match = None
         best_score = -1
@@ -181,7 +169,6 @@ class FoodDetector:
         results = []
         used_main = set()
 
-        # คำนวณ score แต่ละเมนู
         candidates = []
         for menu in self.menu_ingredients.get("menus", []):
             main = set(menu.get("main_ingredients", []))
@@ -189,42 +176,42 @@ class FoodDetector:
             bonus = set(menu.get("bonus_ingredients", []))
             min_match = menu.get("min_match", 1)
 
-            # ตรวจ main_ingredients ว่าเจอครบ min_match ไหม
             main_matched = main & detected_set
             if len(main_matched) < min_match:
                 continue
 
-            # ตรวจ required_ingredients ต้องเจอครบทุกตัว
             if required and not required.issubset(detected_set):
                 continue
 
             score = len(main_matched) + len(bonus & detected_set)
             candidates.append((score, menu))
 
-        # เรียงจาก score มากสุดก่อน
         candidates.sort(key=lambda x: x[0], reverse=True)
 
         for score, menu in candidates:
             main_matched = set(menu.get("main_ingredients", [])) & detected_set
 
-            # ถ้า main ingredient ถูกใช้ไปแล้วในเมนูก่อนหน้า ข้ามไป
             if main_matched & used_main:
                 continue
 
-            # ดึงราคาจาก menu.json
+            # ── ดึงราคาจาก menu.json โดยหา key ตรงๆ ก่อน ──
             price = 0
-            for m in self.menu.values():
-                if not isinstance(m, dict):
-                    continue
-                if "menus" in m:
-                    for sub in m["menus"]:
-                        if sub.get("name_en") == menu.get("name_en"):
-                            price = sub.get("price", 0)
-                            break
-                elif m.get("name_en") == menu.get("name_en"):
-                    price = m.get("price", 0)
-                if price:
-                    break
+            direct = self.menu.get(menu["key"])
+            if isinstance(direct, dict):
+                price = direct.get("price", 0)
+            if not price:
+                for m in self.menu.values():
+                    if not isinstance(m, dict):
+                        continue
+                    if "menus" in m:
+                        for sub in m["menus"]:
+                            if sub.get("name_en") == menu.get("name_en"):
+                                price = sub.get("price", 0)
+                                break
+                    elif m.get("name_en") == menu.get("name_en"):
+                        price = m.get("price", 0)
+                    if price:
+                        break
 
             results.append({
                 "name": menu["key"],
@@ -312,7 +299,6 @@ class FoodDetector:
             return {"success": False, "error": str(exc)}
 
     # ── Menu hierarchy (ไม่ใช้แล้ว — เก็บไว้ reference) ────
-    # _build_menus_hierarchy ถูกแทนที่ด้วย _build_menu_result
 
     @staticmethod
     def _bbox_area(b: dict) -> float:

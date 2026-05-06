@@ -56,35 +56,30 @@
       }
     ]
   },
-  "noodle": {
-    "name_th": "ก๋วยเตี๋ยว",
-    "name_en": "Noodle",
+  "noodle_chicken_drumstick": {
+    "name_th": "ก๋วยเตี๋ยวไก่น่อง",
+    "name_en": "Chicken Drumstick Noodle",
     "price": 40,
     "unit": "ชาม",
     "is_main": true,
-    "menus": [
-      {
-        "name_th": "ก๋วยเตี๋ยวไก่น่อง",
-        "name_en": "Chicken Drumstick Noodle",
-        "price": 40,
-        "ingredients": [
-          "noodle",
-          "chicken_drumstick",
-          "boiled_chicken_blood_jelly",
-          "daikon_radish"
-        ]
-      },
-      {
-        "name_th": "ก๋วยเตี๋ยวไก่ฉีก",
-        "name_en": "Shredded Chicken Noodle",
-        "price": 40,
-        "ingredients": [
-          "noodle",
-          "chicken_shredded",
-          "boiled_chicken_blood_jelly",
-          "daikon_radish"
-        ]
-      }
+    "ingredients": [
+      "noodle",
+      "chicken_drumstick",
+      "boiled_chicken_blood_jelly",
+      "daikon_radish"
+    ]
+  },
+  "noodle_chicken_shredded": {
+    "name_th": "ก๋วยเตี๋ยวไก่ฉีก",
+    "name_en": "Shredded Chicken Noodle",
+    "price": 40,
+    "unit": "ชาม",
+    "is_main": true,
+    "ingredients": [
+      "noodle",
+      "chicken_shredded",
+      "boiled_chicken_blood_jelly",
+      "daikon_radish"
     ]
   },
   "red_pork_and_crispy_pork": {
@@ -158,6 +153,13 @@
       "pickled_ginger",
       "boiled_vegetables"
     ]
+  },
+  "noodle": {
+    "name_th": "ก๋วยเตี๋ยว",
+    "name_en": "Noodle",
+    "price": 0,
+    "unit": "ชาม",
+    "is_main": false
   },
   "boiled_chicken": {
     "name_th": "ไก่ต้ม",

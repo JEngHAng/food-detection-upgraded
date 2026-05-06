@@ -7,7 +7,7 @@
     {
       "key": "noodle_chicken_drumstick",
       "name_th": "ก๋วยเตี๋ยวไก่น่อง",
-      "name_en": "Noodle with Chicken Drumstick",
+      "name_en": "Chicken Drumstick Noodle",
       "min_match": 1,
       "main_ingredients": ["chicken_drumstick"],
       "required_ingredients": [],
@@ -17,7 +17,7 @@
     {
       "key": "noodle_chicken_shredded",
       "name_th": "ก๋วยเตี๋ยวไก่ฉีก",
-      "name_en": "Noodle with Shredded Chicken",
+      "name_en": "Shredded Chicken Noodle",
       "min_match": 1,
       "main_ingredients": ["chicken_shredded"],
       "required_ingredients": [],
@@ -27,7 +27,7 @@
     {
       "key": "chicken_rice_boiled",
       "name_th": "ข้าวมันไก่ต้ม",
-      "name_en": "Khao Man Gai with Boiled Chicken",
+      "name_en": "Boiled Khao Man Gai",
       "min_match": 1,
       "main_ingredients": ["boiled_chicken"],
       "required_ingredients": ["chicken_rice"],
@@ -37,7 +37,7 @@
     {
       "key": "chicken_rice_fried",
       "name_th": "ข้าวมันไก่ทอด",
-      "name_en": "Khao Man Gai with Fried Chicken",
+      "name_en": "Fried Khao Man Gai",
       "min_match": 1,
       "main_ingredients": ["fried_chicken"],
       "required_ingredients": ["chicken_rice"],
@@ -47,7 +47,7 @@
     {
       "key": "chicken_rice_mixed",
       "name_th": "ข้าวมันไก่ทอดไก่ต้ม (ผสม)",
-      "name_en": "Khao Man Gai Mixed (Fried & Boiled)",
+      "name_en": "Mixed Khao Man Gai",
       "min_match": 2,
       "main_ingredients": ["fried_chicken", "boiled_chicken"],
       "required_ingredients": ["chicken_rice"],
@@ -57,7 +57,7 @@
     {
       "key": "chicken_rice_grilled",
       "name_th": "ข้าวมันไก่ย่าง",
-      "name_en": "Khao Man Gai with Grilled Chicken",
+      "name_en": "Grilled Khao Man Gai",
       "min_match": 1,
       "main_ingredients": ["grilled_chicken"],
       "required_ingredients": ["chicken_rice"],
@@ -67,31 +67,31 @@
     {
       "key": "stir_fried_basil_minced_pork",
       "name_th": "ข้าวผัดกะเพราหมูสับ",
-      "name_en": "Rice with Basil and Minced Pork",
+      "name_en": "Stir-fried Basil Minced Pork Rice",
       "min_match": 1,
       "main_ingredients": ["minced_pork"],
-      "required_ingredients": [],
-      "bonus_ingredients": ["rice", "basil_leaf"],
-      "ingredients": ["rice", "basil_leaf", "minced_pork"]
+      "required_ingredients": ["stir_fried_basil"],
+      "bonus_ingredients": ["rice"],
+      "ingredients": ["rice", "stir_fried_basil", "minced_pork"]
     },
     {
       "key": "stir_fried_basil_minced_pork_tofu",
       "name_th": "ข้าวผัดกะเพราหมูสับเต้าหู้",
-      "name_en": "Rice with Basil, Minced Pork & Tofu",
+      "name_en": "Stir-fried Basil Minced Pork Tofu Rice",
       "min_match": 2,
       "main_ingredients": ["minced_pork", "fried_tofo"],
-      "required_ingredients": [],
-      "bonus_ingredients": ["rice", "basil_leaf"],
-      "ingredients": ["rice", "basil_leaf", "minced_pork", "fried_tofo"]
+      "required_ingredients": ["stir_fried_basil"],
+      "bonus_ingredients": ["rice"],
+      "ingredients": ["rice", "stir_fried_basil", "minced_pork", "fried_tofo"]
     },
     {
       "key": "rice_crispy_pork",
       "name_th": "ข้าวหมูกรอบ",
-      "name_en": "Rice with Crispy Pork",
+      "name_en": "Crispy Pork Rice",
       "min_match": 1,
       "main_ingredients": ["crispy_pork"],
       "required_ingredients": [],
-      "bonus_ingredients": ["rice", "boiled_egg", "chainese_sausage", "pickled_ginger", "boiled_vegetables"],
+      "bonus_ingredients": ["rice", "pickled_ginger", "boiled_vegetables"],
       "ingredients": ["rice", "crispy_pork", "pickled_ginger", "boiled_vegetables"]
     },
     {
@@ -101,18 +101,18 @@
       "min_match": 1,
       "main_ingredients": ["red_pork"],
       "required_ingredients": [],
-      "bonus_ingredients": ["rice", "boiled_egg", "chainese_sausage", "pickled_ginger", "boiled_vegetables"],
-      "ingredients": ["rice", "red_pork", "pickled_ginger", "boiled_vegetables"]
+      "bonus_ingredients": ["rice", "cucumber"],
+      "ingredients": ["rice", "red_pork", "cucumber"]
     },
     {
       "key": "red_pork_and_crispy_pork",
       "name_th": "ข้าวหมูกรอบหมูแดง (ผสม)",
-      "name_en": "Rice with Red Pork & Crispy Pork",
+      "name_en": "Red Pork & Crispy Pork Rice",
       "min_match": 2,
       "main_ingredients": ["crispy_pork", "red_pork"],
       "required_ingredients": [],
-      "bonus_ingredients": ["rice", "boiled_egg", "chainese_sausage", "pickled_ginger", "boiled_vegetables"],
-      "ingredients": ["rice", "crispy_pork", "red_pork", "boiled_egg", "chainese_sausage", "pickled_ginger", "boiled_vegetables"]
+      "bonus_ingredients": ["rice", "boiled_egg", "chainese_sausage", "cucumber"],
+      "ingredients": ["rice", "crispy_pork", "red_pork", "boiled_egg", "chainese_sausage", "cucumber"]
     },
     {
       "key": "roast_duck_rice",
