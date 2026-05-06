@@ -24,7 +24,7 @@ import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 from ultralytics import YOLO
 
-from config import MODEL_PATH, UPLOAD_DIR, DetectionConfig, MENU_PATH
+from config import MODEL_PATH, UPLOAD_DIR, DetectionConfig, MENU_PATH, MENU_INGREDIENTS_PATH
 from utils import load_menu
 
 logger = logging.getLogger(__name__)
@@ -76,7 +76,8 @@ class FoodDetector:
 
     def __init__(self):
         self.menu = load_menu(MENU_PATH)
-        self.model = self._load_model()  # ← try/except แทน raise
+        self.menu_ingredients = load_menu(MENU_INGREDIENTS_PATH)
+        self.model = self._load_model()
         self._is_pi = self._detect_raspberry_pi()
         self._font_label = _find_thai_font(size=22)
         self._font_small = _find_thai_font(size=14)
@@ -121,7 +122,7 @@ class FoodDetector:
     def detect(self, image_path: str) -> dict:
         if not Path(image_path).exists():
             return {"success": False, "error": f"Image not found: {image_path}"}
-        if self.model is None:  # ← guard จากโค้ดใหม่
+        if self.model is None:
             return {"success": False, "error": "Model not initialized"}
         return self._detect_yolo(image_path)
 
@@ -130,12 +131,6 @@ class FoodDetector:
         """
         จับคู่ class ที่ detect ได้กับเมนูใน menu.json
         คืน dict ของเมนูที่ตรงที่สุด หรือ None ถ้าไม่พบ
-
-        Logic:
-          1. หา class หลัก (is_main=True) ที่ detect เจอ
-          2. สำหรับแต่ละ main class ดู sub-menus (ถ้ามี)
-          3. นับ ingredients ที่ตรงกับ detected_classes
-          4. เลือก menu ที่ match มากที่สุด
         """
         detected_set = set(detected_classes)
         best_match = None
@@ -147,7 +142,6 @@ class FoodDetector:
             if class_name not in detected_set:
                 continue
 
-            # ถ้ามี sub-menus
             if "menus" in item:
                 for sub in item["menus"]:
                     ingredients = set(sub.get("ingredients", []))
@@ -163,7 +157,6 @@ class FoodDetector:
                             "score": score,
                         }
             else:
-                # ไม่มี sub-menus ใช้ราคา base
                 ingredients = set(item.get("ingredients", []))
                 score = len(ingredients & detected_set) if ingredients else 1
                 if score > best_score:
@@ -181,73 +174,67 @@ class FoodDetector:
 
     def _build_menu_result(self, detections: list[dict]) -> list[dict]:
         """
-        จาก detections ทั้งหมด หาเมนูหลักทั้งหมดที่ตรง
-        คืน list ของเมนูที่ match ได้ (รองรับหลายเมนูในภาพเดียว)
+        จับคู่เมนูโดยใช้ menu_ingredients.json
+        รองรับ min_match, required_ingredients, bonus_ingredients
         """
-        detected_classes = [d["name"] for d in detections]
-        detected_set = set(detected_classes)
+        detected_set = set(d["name"] for d in detections)
         results = []
-        used_classes = set()
+        used_main = set()
 
-        # หา main class ทั้งหมดที่เจอในภาพ
-        main_classes = [
-            c for c in detected_classes
-            if isinstance(self.menu.get(c), dict) and self.menu[c].get("is_main")
-        ]
+        # คำนวณ score แต่ละเมนู
+        candidates = []
+        for menu in self.menu_ingredients.get("menus", []):
+            main = set(menu.get("main_ingredients", []))
+            required = set(menu.get("required_ingredients", []))
+            bonus = set(menu.get("bonus_ingredients", []))
+            min_match = menu.get("min_match", 1)
 
-        # เรียง main_class ให้เมนูที่มี ingredients เยอะกว่ามาก่อน
-        # เพื่อให้ red_pork_and_crispy_pork มาก่อน crispy_pork
-        def main_priority(cls):
-            item = self.menu.get(cls, {})
-            if "menus" in item:
-                return max(len(sub.get("ingredients", [])) for sub in item["menus"])
-            return len(item.get("ingredients", []))
-
-        main_classes = sorted(main_classes, key=main_priority, reverse=True)
-
-        for main_class in main_classes:
-            if main_class in used_classes:
+            # ตรวจ main_ingredients ว่าเจอครบ min_match ไหม
+            main_matched = main & detected_set
+            if len(main_matched) < min_match:
                 continue
 
-            item = self.menu[main_class]
-            best_sub = None
-            best_score = -1
+            # ตรวจ required_ingredients ต้องเจอครบทุกตัว
+            if required and not required.issubset(detected_set):
+                continue
 
-            if "menus" in item:
-                for sub in item["menus"]:
-                    ingredients = set(sub.get("ingredients", []))
-                    score = len(ingredients & detected_set)
-                    if score > best_score:
-                        best_score = score
-                        best_sub = sub
-                # ถ้าไม่มี sub ไหน match เลย ให้เลือก sub แรกเป็น default
-                # (กรณี YOLO เจอ stir_fried_basil แต่ minced_pork confidence ต่ำกว่า threshold)
-                if best_sub is None and item["menus"]:
-                    best_sub = item["menus"][0]
+            score = len(main_matched) + len(bonus & detected_set)
+            candidates.append((score, menu))
 
-            if best_sub:
-                match = {
-                    "class_name": main_class,
-                    "name_th": best_sub["name_th"],
-                    "name_en": best_sub["name_en"],
-                    "price": best_sub["price"],
-                    "ingredients": best_sub.get("ingredients", []),
-                }
-            else:
-                match = {
-                    "class_name": main_class,
-                    "name_th": item["name_th"],
-                    "name_en": item["name_en"],
-                    "price": item["price"],
-                    "ingredients": item.get("ingredients", []),
-                }
+        # เรียงจาก score มากสุดก่อน
+        candidates.sort(key=lambda x: x[0], reverse=True)
+
+        for score, menu in candidates:
+            main_matched = set(menu.get("main_ingredients", [])) & detected_set
+
+            # ถ้า main ingredient ถูกใช้ไปแล้วในเมนูก่อนหน้า ข้ามไป
+            if main_matched & used_main:
+                continue
+
+            # ดึงราคาจาก menu.json
+            price = 0
+            for m in self.menu.values():
+                if not isinstance(m, dict):
+                    continue
+                if "menus" in m:
+                    for sub in m["menus"]:
+                        if sub.get("name_en") == menu.get("name_en"):
+                            price = sub.get("price", 0)
+                            break
+                elif m.get("name_en") == menu.get("name_en"):
+                    price = m.get("price", 0)
+                if price:
+                    break
 
             results.append({
-                "name": match["class_name"],
-                "name_th": match["name_th"],
-                "name_en": match["name_en"],
-                "price": match["price"],
-                "confidence": next((d["confidence"] for d in detections if d["name"] == main_class), 0),
+                "name": menu["key"],
+                "name_th": menu["name_th"],
+                "name_en": menu["name_en"],
+                "price": price,
+                "confidence": max(
+                    (d["confidence"] for d in detections if d["name"] in main_matched),
+                    default=0,
+                ),
                 "ingredients": [
                     {
                         "name": d["name"],
@@ -256,16 +243,12 @@ class FoodDetector:
                         "bbox": d["bbox"],
                     }
                     for d in detections
-                    if d["name"] in match["ingredients"]
+                    if d["name"] in set(menu.get("ingredients", []))
                 ],
             })
-            used_classes.add(main_class)
-            # mark ingredients ที่เป็น main class ด้วย ป้องกันนับซ้ำ
-            for ing in match["ingredients"]:
-                if ing in [c for c in main_classes]:
-                    used_classes.add(ing)
+            used_main.update(main_matched)
 
-        return results if results else []
+        return results
 
     # ── YOLO Detection ─────────────────────────────────────
 
@@ -309,7 +292,6 @@ class FoodDetector:
 
             annotated_path = self._save_annotated_pil(pil_img, image_path)
 
-            # ── จับคู่เมนูจาก is_main + ingredients (ถูกต้อง) ──
             menu_results = self._build_menu_result(detections)
             total_price = sum(m["price"] for m in menu_results) if menu_results else sum(d["price"] for d in detections)
 
@@ -321,11 +303,8 @@ class FoodDetector:
                 "count": len(detections),
                 "mock": False,
                 "matched_menus": menu_results,
+                "menus": menu_results,
             }
-            # ── แก้: ใช้ menu_results แทน _build_menus_hierarchy ──
-            # _build_menus_hierarchy ดูแค่ขนาด bbox ไม่ได้ดู is_main
-            # ทำให้ noodle (bbox ใหญ่) ชนะ stir_fried_basil เสมอ
-            out["menus"] = menu_results
             return out
 
         except Exception as exc:
@@ -334,7 +313,6 @@ class FoodDetector:
 
     # ── Menu hierarchy (ไม่ใช้แล้ว — เก็บไว้ reference) ────
     # _build_menus_hierarchy ถูกแทนที่ด้วย _build_menu_result
-    # เพราะ hierarchy ดูแค่ขนาด bbox ไม่ได้ดู is_main / ingredients
 
     @staticmethod
     def _bbox_area(b: dict) -> float:

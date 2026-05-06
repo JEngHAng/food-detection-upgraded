@@ -27,7 +27,8 @@ LOG_DIR     = BASE_DIR / "logs"
 DATA_DIR    = BASE_DIR / "data"
 MODEL_PATH  = BASE_DIR / "models" / "best.pt"
 DB_PATH     = BASE_DIR / os.getenv("DB_PATH", "database/food_detection.db")
-MENU_PATH   = DATA_DIR / "menu.json"
+MENU_PATH             = DATA_DIR / "menu.json"
+MENU_INGREDIENTS_PATH = DATA_DIR / "menu_ingredients.json"
 
 # สร้างโฟลเดอร์อัตโนมัติถ้ายังไม่มี
 UPLOAD_DIR.mkdir(exist_ok=True)
@@ -48,7 +49,7 @@ class DetectionConfig:
     CONFIDENCE    = float(os.getenv("CONFIDENCE", 0.4))  # ความมั่นใจขั้นต่ำ (0.0–1.0)
     IOU_THRESHOLD = 0.45              # Intersection over Union threshold
     IMG_SIZE      = 640               # ขนาดภาพที่ส่งให้ YOLO
-    MAX_DETECTIONS = 10               # จำนวน detection สูงสุดต่อภาพ
+    MAX_DETECTIONS = 10               # จำนวน detection สูงสุดต่อภาภ
 
 
 # ── Hardware (Raspberry Pi) ────────────────────────────────
