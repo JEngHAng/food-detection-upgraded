@@ -69,7 +69,7 @@
       "name_th": "ข้าวผัดกะเพราหมูสับ",
       "name_en": "Stir-fried Basil Minced Pork Rice",
       "min_match": 1,
-      "main_ingredients": ["minced_pork"],
+      "main_ingredients": ["minced_pork,"],
       "required_ingredients": ["stir_fried_basil"],
       "bonus_ingredients": ["rice"],
       "ingredients": ["rice", "stir_fried_basil", "minced_pork"]

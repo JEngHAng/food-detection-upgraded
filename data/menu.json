@@ -31,17 +31,6 @@
         ]
       },
       {
-        "name_th": "ข้าวมันไก่ย่าง",
-        "name_en": "Grilled Khao Man Gai",
-        "price": 40,
-        "ingredients": [
-          "chicken_rice",
-          "rice",
-          "grilled_chicken",
-          "cucumber"
-        ]
-      },
-      {
         "name_th": "ข้าวมันไก่ผสม",
         "name_en": "Mixed Khao Man Gai",
         "price": 45,
