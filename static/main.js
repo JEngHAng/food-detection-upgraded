@@ -11,11 +11,11 @@ var lastDetectionData  = null;
 // WEIGHT — SSE Realtime Stream
 // ══════════════════════════════════════════════════════
 
-var _weightES      = null;   // EventSource instance
-var _lastWeightG   = 0.0;    // ค่าน้ำหนักล่าสุด
+var _weightES      = null;
+var _lastWeightG   = 0.0;
 
 function startWeightStream() {
-    if (_weightES) return;   // ป้องกัน subscribe ซ้ำ
+    if (_weightES) return;
 
     _weightES = new EventSource("/api/weight/stream");
 
@@ -26,12 +26,10 @@ function startWeightStream() {
 
             _lastWeightG = d.weight ?? 0.0;
 
-            // อัปเดตทุก element ที่แสดงน้ำหนัก
             document.querySelectorAll(".weight-display").forEach(el => {
                 el.textContent = _lastWeightG.toFixed(1);
             });
 
-            // เปลี่ยนสี dot ตามความเสถียร
             document.querySelectorAll(".weight-dot").forEach(dot => {
                 if (d.mock) {
                     dot.style.background = "#888";
@@ -45,7 +43,6 @@ function startWeightStream() {
                 }
             });
 
-            // แสดง badge mock mode
             document.querySelectorAll(".weight-mock-badge").forEach(b => {
                 b.style.display = d.mock ? "inline" : "none";
             });
@@ -70,10 +67,7 @@ async function tareScale() {
         btn.style.background = "#e67e22";
         btn.style.opacity = "0.7";
     }
-
-    // แสดง loading overlay
     showLoading(true, "⚖️ กำลัง Tare เครื่องชั่ง กรุณารอสักครู่...");
-
     try {
         const res  = await fetch("/api/weight/tare", { method: "POST" });
         const data = await res.json();
@@ -184,21 +178,119 @@ async function goToEnd() {
 }
 
 // ══════════════════════════════════════════════════════
+// WEIGHT CLASSIFICATION
+// ══════════════════════════════════════════════════════
+
+const WEIGHT_THRESHOLDS = {
+    "ข้าวหน้าเป็ด":      510,
+    "ข้าวหมูกรอบ":       500,
+    "ข้าวผัดกะเพรา":     500,
+    "ข้าวมันไก่ทอด":     480,
+    "ข้าวมันไก่ต้ม":     480,
+    "ก๋วยเตี๋ยวไก่ฉีก":  720,
+    "ก๋วยเตี๋ยวไก่น่อง": 720,
+};
+const DEFAULT_THRESHOLD = 500;
+
+function getWeightThreshold(foodName) {
+    if (!foodName) return DEFAULT_THRESHOLD;
+    for (const [key, val] of Object.entries(WEIGHT_THRESHOLDS)) {
+        if (foodName.includes(key)) return val;
+    }
+    return DEFAULT_THRESHOLD;
+}
+
+/**
+ * คืน object { level, label, badgeStyle, priceExtra }
+ *
+ * เกณฑ์:
+ *   ปริมาณน้อยกว่าปกติ  → dishWeight < threshold * 0.85
+ *   ✅ ปริมาณปกติ           → threshold * 0.85 ≤ dishWeight < threshold
+ *   ⭐ พิเศษ               → dishWeight ≥ threshold  (+5 บาท)
+ */
+function classifyWeight(foodName, dishWeight) {
+    if (!dishWeight || dishWeight <= 0) {
+        return { level: "unknown", label: "", badgeStyle: "display:none;", priceExtra: 0 };
+    }
+    const threshold = getWeightThreshold(foodName);
+    const low       = threshold * 0.85;
+
+    if (dishWeight >= threshold) {
+        return {
+            level: "special",
+            label: "⭐ พิเศษ",
+            badgeStyle: "font-size:0.78rem;font-weight:700;background:#f59e0b;color:#1c1917;border-radius:6px;padding:2px 8px;white-space:nowrap;",
+            priceExtra: 5,
+        };
+    } else if (dishWeight >= low) {
+        return {
+            level: "normal",
+            label: "✅ ปริมาณปกติ",
+            badgeStyle: "font-size:0.78rem;font-weight:600;background:rgba(255,255,255,0.18);color:#e2e8f0;border-radius:6px;padding:2px 8px;white-space:nowrap;",
+            priceExtra: 0,
+        };
+    } else {
+        return {
+            level: "low",
+            label: "ปริมาณน้อย",
+            badgeStyle: "font-size:0.78rem;font-weight:600;background:#475569;color:#cbd5e1;border-radius:6px;padding:2px 8px;white-space:nowrap;",
+            priceExtra: 0,
+        };
+    }
+}
+
+/**
+ * แบ่งน้ำหนักรวมให้แต่ละเมนูตาม confidence ratio
+ * ถ้าเมนูเดียว → ได้น้ำหนักทั้งหมด
+ * ถ้า 2 เมนู confidence 60:40 → แบ่ง 60%:40% ของน้ำหนักรวม
+ */
+function splitWeightByConfidence(dishes, totalWeight) {
+    if (!dishes || dishes.length === 0) return [];
+    if (dishes.length === 1) {
+        return [{ ...dishes[0], dishWeight: totalWeight }];
+    }
+    const totalConf = dishes.reduce((sum, d) => sum + (d.confidence || 0), 0);
+    return dishes.map(d => {
+        const ratio = totalConf > 0 ? (d.confidence || 0) / totalConf : 1 / dishes.length;
+        return { ...d, dishWeight: Math.round(totalWeight * ratio * 10) / 10 };
+    });
+}
+
+// ══════════════════════════════════════════════════════
 // 4. แสดงผลลัพธ์
 // ══════════════════════════════════════════════════════
 function renderResult(data) {
     const ri = getEl("result-img");
     if (ri) ri.src = data.annotated_image;
 
-    const weightG = _lastWeightG;
+    const totalWeight = _lastWeightG;
+    const rawDishes   = data.dishes || [];
+
+    // แบ่งน้ำหนักตาม confidence ratio
+    const dishes = splitWeightByConfidence(rawDishes, totalWeight);
+
+    let newTotalPrice = 0;
 
     const list = getEl("menu-list");
     if (list) {
-        const dishes = data.dishes || [];
         list.innerHTML = dishes.map((dish, idx) => {
-            const ingredients = dish.ingredients || [];
+            const ingredients    = dish.ingredients || [];
             const hasIngredients = ingredients.length > 0;
-            const conf = dish.confidence ? Math.round(dish.confidence * 100) : 0;
+            const conf           = dish.confidence ? Math.round(dish.confidence * 100) : 0;
+            const foodName       = dish.name_th || dish.name;
+            const dishWeight     = dish.dishWeight || 0;
+
+            // วิเคราะห์ปริมาณ
+            const wc         = classifyWeight(foodName, dishWeight);
+            const finalPrice = Math.round(dish.price) + wc.priceExtra;
+            newTotalPrice   += finalPrice;
+
+            // แสดงสัดส่วนน้ำหนักถ้ามีหลายเมนู
+            const totalConf  = dishes.reduce((s, d) => s + (d.confidence || 0), 0);
+            const ratio      = totalConf > 0 ? Math.round((dish.confidence || 0) / totalConf * 100) : 100;
+            const weightLabel = dishes.length > 1
+                ? `<span style="font-size:0.72rem;opacity:0.65;">สัดส่วน ${ratio}% → ${dishWeight.toFixed(1)} ก.</span>`
+                : `<span style="font-size:0.72rem;opacity:0.65;">${dishWeight.toFixed(1)} ก.</span>`;
 
             const ingHtml = hasIngredients ? `
                 <div id="ing-${idx}" style="display:none;background:rgba(0,0,0,0.3);border-top:1px solid rgba(255,255,255,0.15);padding:10px 14px;">
@@ -216,14 +308,16 @@ function renderResult(data) {
                 <div style="padding:14px 16px;display:flex;justify-content:space-between;align-items:center;cursor:${hasIngredients?'pointer':'default'};"
                      onclick="${hasIngredients?`toggleIng(${idx})`:''}">
                     <div style="display:flex;flex-direction:column;gap:4px;">
-                        <span style="font-weight:700;font-size:1rem;">${dish.name_th || dish.name}</span>
-                        <div style="display:flex;align-items:center;gap:8px;">
+                        <span style="font-weight:700;font-size:1rem;">${foodName}</span>
+                        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
                             ${conf ? `<span style="font-size:0.72rem;opacity:0.75;">ความแม่นยำ ${conf}%</span>` : ''}
-                            <span style="font-size:0.78rem;color:#fdba74;font-weight:600;">⚖️ น้ำหนัก ${weightG.toFixed(1)} กรัม</span>
+                            ${weightLabel}
                         </div>
                     </div>
-                    <div style="display:flex;align-items:center;gap:10px;">
-                        <span style="font-weight:bold;font-size:1rem;">฿${Math.round(dish.price)}</span>
+                    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end;">
+                        <span style="${wc.badgeStyle}">${wc.label}</span>
+                        <span style="font-weight:bold;font-size:1rem;">฿${finalPrice}</span>
+                        ${wc.priceExtra > 0 ? `<span style="font-size:0.7rem;color:#fde68a;">(+${wc.priceExtra})</span>` : ''}
                         ${hasIngredients ? `<span id="arrow-${idx}" style="font-size:0.8rem;transition:transform 0.2s;">▼</span>` : ''}
                     </div>
                 </div>
@@ -233,7 +327,7 @@ function renderResult(data) {
     }
 
     const total = getEl("total-price-display");
-    if (total) total.textContent = Math.round(data.total_price || 0);
+    if (total) total.textContent = newTotalPrice || Math.round(data.total_price || 0);
 }
 
 function toggleIng(idx) {
@@ -264,7 +358,7 @@ async function rescan() {
         if (data.success) {
             lastDetectionData = data;
             renderResult(data);
-            showToast("🔄 ตรวจจับใหม่เรียบร้อย", "success");
+            showToast("ตรวจจับใหม่เรียบร้อย", "success");
         } else {
             showToast("❌ ตรวจจับไม่สำเร็จ", "error");
         }
@@ -353,9 +447,7 @@ window.onload = () => {
 };
 
 async function checkAutoTare() {
-    // ซ่อนน้ำหนักระหว่าง tare
     document.querySelectorAll(".weight-display").forEach(el => el.textContent = "...");
-
     showLoading(true, "⚖️ กำลัง Tare เครื่องชั่งอัตโนมัติ...");
     while (true) {
         try {

@@ -31,6 +31,17 @@
         ]
       },
       {
+        "name_th": "ข้าวมันไก่ย่าง",
+        "name_en": "Grilled Khao Man Gai",
+        "price": 40,
+        "ingredients": [
+          "chicken_rice",
+          "rice",
+          "grilled_chicken",
+          "cucumber"
+        ]
+      },
+      {
         "name_th": "ข้าวมันไก่ผสม",
         "name_en": "Mixed Khao Man Gai",
         "price": 45,
@@ -275,5 +286,17 @@
     "price": 0,
     "unit": "รายการ",
     "is_main": false
+  },
+  "red_pork_rice": {
+    "name_th": "ข้าวหมูแดง",
+    "name_en": "Rice with Red Pork",
+    "price": 40,
+    "unit": "จาน",
+    "is_main": true,
+    "ingredients": [
+      "red_pork",
+      "rice",
+      "cucumber"
+    ]
   }
 }

@@ -24,7 +24,7 @@ import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 from ultralytics import YOLO
 
-from config import MODEL_PATH, UPLOAD_DIR, DetectionConfig, MENU_PATH
+from config import MODEL_PATH, UPLOAD_DIR, DetectionConfig, MENU_PATH, MENU_INGREDIENTS_PATH
 from utils import load_menu
 
 logger = logging.getLogger(__name__)
@@ -41,25 +41,20 @@ BOX_COLORS_RGB = [
 
 # ── ฟอนต์ภาษาไทย ──────────────────────────────────────────
 _FONT_CANDIDATES = [
-    # Raspberry Pi OS / Debian
     "/usr/share/fonts/opentype/tlwg/Loma.otf",
     "/usr/share/fonts/truetype/tlwg/Loma.ttf",
     "/usr/share/fonts/opentype/tlwg/Garuda.otf",
     "/usr/share/fonts/truetype/thai/Garuda.ttf",
-    # Ubuntu / Noto
     "/usr/share/fonts/truetype/noto/NotoSansThai-Regular.ttf",
     "/usr/share/fonts/truetype/noto/NotoSans-Regular.ttf",
-    # macOS
     "/Library/Fonts/Thonburi.ttf",
     "/System/Library/Fonts/Supplemental/Ayuthaya.ttf",
-    # Windows
     "C:/Windows/Fonts/tahoma.ttf",
     "C:/Windows/Fonts/arial.ttf",
 ]
 
 
 def _find_thai_font(size: int = 18) -> ImageFont.FreeTypeFont:
-    """หาฟอนต์ที่รองรับภาษาไทย คืน default ถ้าไม่พบ"""
     for path in _FONT_CANDIDATES:
         if Path(path).exists():
             try:
@@ -76,7 +71,8 @@ class FoodDetector:
 
     def __init__(self):
         self.menu = load_menu(MENU_PATH)
-        self.model = self._load_model()  # ← try/except แทน raise
+        self.menu_ingredients = load_menu(MENU_INGREDIENTS_PATH)
+        self.model = self._load_model()
         self._is_pi = self._detect_raspberry_pi()
         self._font_label = _find_thai_font(size=22)
         self._font_small = _find_thai_font(size=14)
@@ -89,7 +85,6 @@ class FoodDetector:
     # ── Initialisation ─────────────────────────────────────
 
     def _load_model(self) -> YOLO | None:
-        """โหลด YOLOv8 model — คืน None แทน raise ถ้าไม่พบไฟล์"""
         try:
             if not MODEL_PATH.exists():
                 logger.error("Model file NOT FOUND at %s", MODEL_PATH)
@@ -110,7 +105,6 @@ class FoodDetector:
     # ── Public API ─────────────────────────────────────────
 
     def get_status(self) -> dict:
-        """คืนสถานะ — ใช้โดย status_bp"""
         return {
             "model_loaded": self.model is not None,
             "is_raspberry_pi": self._is_pi,
@@ -121,9 +115,127 @@ class FoodDetector:
     def detect(self, image_path: str) -> dict:
         if not Path(image_path).exists():
             return {"success": False, "error": f"Image not found: {image_path}"}
-        if self.model is None:  # ← guard จากโค้ดใหม่
+        if self.model is None:
             return {"success": False, "error": "Model not initialized"}
         return self._detect_yolo(image_path)
+
+    def _match_menu(self, detected_classes: list[str]) -> dict:
+        detected_set = set(detected_classes)
+        best_match = None
+        best_score = -1
+
+        for class_name, item in self.menu.items():
+            if not isinstance(item, dict) or not item.get("is_main"):
+                continue
+            if class_name not in detected_set:
+                continue
+
+            if "menus" in item:
+                for sub in item["menus"]:
+                    ingredients = set(sub.get("ingredients", []))
+                    score = len(ingredients & detected_set)
+                    if score > best_score:
+                        best_score = score
+                        best_match = {
+                            "class_name": class_name,
+                            "name_th": sub["name_th"],
+                            "name_en": sub["name_en"],
+                            "price": sub["price"],
+                            "ingredients": sub.get("ingredients", []),
+                            "score": score,
+                        }
+            else:
+                ingredients = set(item.get("ingredients", []))
+                score = len(ingredients & detected_set) if ingredients else 1
+                if score > best_score:
+                    best_score = score
+                    best_match = {
+                        "class_name": class_name,
+                        "name_th": item["name_th"],
+                        "name_en": item["name_en"],
+                        "price": item["price"],
+                        "ingredients": item.get("ingredients", []),
+                        "score": score,
+                    }
+
+        return best_match
+
+    def _build_menu_result(self, detections: list[dict]) -> list[dict]:
+        """
+        จับคู่เมนูโดยใช้ menu_ingredients.json
+        รองรับ min_match, required_ingredients, bonus_ingredients
+        """
+        detected_set = set(d["name"] for d in detections)
+        results = []
+        used_main = set()
+
+        candidates = []
+        for menu in self.menu_ingredients.get("menus", []):
+            main = set(menu.get("main_ingredients", []))
+            required = set(menu.get("required_ingredients", []))
+            bonus = set(menu.get("bonus_ingredients", []))
+            min_match = menu.get("min_match", 1)
+
+            main_matched = main & detected_set
+            if len(main_matched) < min_match:
+                continue
+
+            if required and not required.issubset(detected_set):
+                continue
+
+            score = len(main_matched) + len(bonus & detected_set)
+            candidates.append((score, menu))
+
+        candidates.sort(key=lambda x: x[0], reverse=True)
+
+        for score, menu in candidates:
+            main_matched = set(menu.get("main_ingredients", [])) & detected_set
+
+            if main_matched & used_main:
+                continue
+
+            # ── ดึงราคาจาก menu.json โดยหา key ตรงๆ ก่อน ──
+            price = 0
+            direct = self.menu.get(menu["key"])
+            if isinstance(direct, dict):
+                price = direct.get("price", 0)
+            if not price:
+                for m in self.menu.values():
+                    if not isinstance(m, dict):
+                        continue
+                    if "menus" in m:
+                        for sub in m["menus"]:
+                            if sub.get("name_en") == menu.get("name_en"):
+                                price = sub.get("price", 0)
+                                break
+                    elif m.get("name_en") == menu.get("name_en"):
+                        price = m.get("price", 0)
+                    if price:
+                        break
+
+            results.append({
+                "name": menu["key"],
+                "name_th": menu["name_th"],
+                "name_en": menu["name_en"],
+                "price": price,
+                "confidence": max(
+                    (d["confidence"] for d in detections if d["name"] in main_matched),
+                    default=0,
+                ),
+                "ingredients": [
+                    {
+                        "name": d["name"],
+                        "name_th": self.menu.get(d["name"], {}).get("name_th", d["name"]),
+                        "confidence": d["confidence"],
+                        "bbox": d["bbox"],
+                    }
+                    for d in detections
+                    if d["name"] in set(menu.get("ingredients", []))
+                ],
+            })
+            used_main.update(main_matched)
+
+        return results
 
     # ── YOLO Detection ─────────────────────────────────────
 
@@ -166,22 +278,27 @@ class FoodDetector:
                 self._draw_box_pil(pil_img, det, i)
 
             annotated_path = self._save_annotated_pil(pil_img, image_path)
+
+            menu_results = self._build_menu_result(detections)
+            total_price = sum(m["price"] for m in menu_results) if menu_results else sum(d["price"] for d in detections)
+
             out = {
                 "success": True,
                 "detections": detections,
-                "total_price": sum(d["price"] for d in detections),
+                "total_price": total_price,
                 "annotated_path": annotated_path,
                 "count": len(detections),
                 "mock": False,
+                "matched_menus": menu_results,
+                "menus": menu_results,
             }
-            out["menus"] = self._build_menus_hierarchy(detections)
             return out
 
         except Exception as exc:
             logger.exception("YOLO detection error")
             return {"success": False, "error": str(exc)}
 
-    # ── Menu hierarchy ─────────────────────────────────────
+    # ── Menu hierarchy (ไม่ใช้แล้ว — เก็บไว้ reference) ────
 
     @staticmethod
     def _bbox_area(b: dict) -> float:
