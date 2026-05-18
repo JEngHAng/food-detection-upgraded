@@ -176,17 +176,17 @@ tbody td{padding:9px 12px;vertical-align:middle;}
 <script>
 // ── Weight threshold (ต้องตรงกับ main.js) ──────────────
 const WEIGHT_THRESHOLDS = {
-    "ข้าวหน้าเป็ด":      510,
-    "ข้าวหมูกรอบ":       500,
-    "ข้าวผัดกะเพรา":     500,
-    "ข้าวมันไก่ทอด":     480,
-    "ข้าวมันไก่ต้ม":     480,
-    "ก๋วยเตี๋ยวไก่ฉีก":  720,
-    "ก๋วยเตี๋ยวไก่น่อง": 720,
+    "ข้าวหน้าเป็ด":      { n:446, s:510, e:5  },
+    "ข้าวหมูกรอบ":       { n:435, s:500, e:5  },
+    "ข้าวผัดกะเพรา":     { n:434, s:498, e:5  },
+    "ข้าวมันไก่ทอด":     { n:420, s:480, e:5  },
+    "ข้าวมันไก่ต้ม":     { n:420, s:480, e:5  },
+    "ก๋วยเตี๋ยวไก่ฉีก":  { n:631, s:871, e:15 },
+    "ก๋วยเตี๋ยวไก่น่อง": { n:631, s:871, e:15 },
 };
-const DEFAULT_THRESHOLD = 500;
+const DEFAULT_THRESHOLD = { n:420, s:500, e:5 };
 
-function getWeightThreshold(foodName) {
+function getThreshold(foodName) {
     if (!foodName) return DEFAULT_THRESHOLD;
     for (const [key, val] of Object.entries(WEIGHT_THRESHOLDS)) {
         if (foodName.includes(key)) return val;
@@ -195,22 +195,29 @@ function getWeightThreshold(foodName) {
 }
 
 /**
- * คืน { portionLabel, portionCls, valueLabel, valueCls }
- *   < 70%  → ปริมาณน้อย  / ❌ ไม่คุ้มค่า
- *   70–99% → ปริมาณปกติ  / ธรรมดา
- *   ≥ 100% → ปริมาณมาก  / ⭐ พิเศษ
+ * Zone A  w < n×0.70          → ธรรมดา น้อยกว่าปกติ  ไม่คุ้มค่า  ลดราคา
+ * Zone B  n×0.70 ≤ w < n      → ธรรมดา ปริมาณปกติ
+ * Zone C  n ≤ w < s×0.70      → พิเศษ  น้อยกว่าปกติ  ไม่คุ้มค่า  +5-ส่วนลด
+ * Zone D  s×0.70 ≤ w < s      → พิเศษ  ปริมาณปกติ
+ * Zone E  w ≥ s               → พิเศษ  มากกว่าปกติ
  */
 function classifyWeight(foodName, weightG) {
     if (!weightG || weightG <= 0)
-        return { portionLabel:"—", portionCls:"", valueLabel:"—", valueCls:"", priceNote:"" };
-    const threshold = getWeightThreshold(foodName);
-    if (weightG >= threshold)
-        return { portionLabel:"🍚 ปริมาณมาก",  portionCls:"badge b-high",   valueLabel:"⭐ พิเศษ",     valueCls:"badge b-special",  priceNote:"+5฿" };
-    if (weightG >= threshold * 0.70)
-        return { portionLabel:"🍚 ปริมาณปกติ", portionCls:"badge b-normal", valueLabel:"ธรรมดา",        valueCls:"badge b-normal2",  priceNote:"" };
-    const shortfall = threshold - weightG;
-    const discount  = Math.floor(shortfall / 100) * 10;
-    return         { portionLabel:"🍚 ปริมาณน้อย", portionCls:"badge b-low",  valueLabel:"❌ ไม่คุ้มค่า", valueCls:"badge b-notworth", priceNote: discount > 0 ? `-${discount}฿` : "" };
+        return { menuLabel:"—", menuCls:"", portionLabel:"—", portionCls:"", extraLabel:"", extraCls:"", priceNote:"" };
+    const t = getThreshold(foodName);
+    if (weightG >= t.s)
+        return { menuLabel:"⭐ พิเศษ", menuCls:"badge b-special", portionLabel:"🔼 มากกว่าปกติ",  portionCls:"badge b-high",   extraLabel:"", extraCls:"", priceNote:`+${t.e}฿` };
+    if (weightG >= t.s * 0.70)
+        return { menuLabel:"⭐ พิเศษ", menuCls:"badge b-special", portionLabel:"✅ ปริมาณปกติ",   portionCls:"badge b-normal", extraLabel:"", extraCls:"", priceNote:`+${t.e}฿` };
+    if (weightG >= t.n) {
+        const disc = Math.floor((t.s - weightG) / 100) * 10;
+        const net  = t.e - disc;
+        return { menuLabel:"⭐ พิเศษ", menuCls:"badge b-special", portionLabel:"🔽 น้อยกว่าปกติ", portionCls:"badge b-low", extraLabel:"❌ ไม่คุ้มค่า", extraCls:"badge b-notworth", priceNote: disc > 0 ? `+${t.e}฿ - ${disc}฿ = ${net > 0 ? "+":""}${net}฿` : `+${t.e}฿` };
+    }
+    if (weightG >= t.n * 0.70)
+        return { menuLabel:"ธรรมดา",   menuCls:"badge b-normal2", portionLabel:"✅ ปริมาณปกติ",   portionCls:"badge b-normal", extraLabel:"", extraCls:"", priceNote:"" };
+    const disc2 = Math.floor((t.n - weightG) / 100) * 10;
+    return     { menuLabel:"ธรรมดา",   menuCls:"badge b-normal2", portionLabel:"🔽 น้อยกว่าปกติ", portionCls:"badge b-low",   extraLabel:"❌ ไม่คุ้มค่า", extraCls:"badge b-notworth", priceNote: disc2 > 0 ? `-${disc2}฿` : "" };
 }
 
 // ── Data ─────────────────────────────────────────────
@@ -284,7 +291,8 @@ function renderTable() {
         const pc=classifyWeight(mainName, s.weight_grams);
 
         const pCell=pc.portionCls?`<span class="${pc.portionCls}">${pc.portionLabel}</span>`:'<span style="color:var(--muted)">—</span>';
-        const vCell=pc.valueCls  ?`<span class="${pc.valueCls}">${pc.valueLabel}</span>`  :'<span style="color:var(--muted)">—</span>';
+        const mCell=pc.menuCls   ?`<span class="${pc.menuCls}">${pc.menuLabel}</span>`     :'<span style="color:var(--muted)">—</span>';
+        const xCell=pc.extraCls  ?`<span class="${pc.extraCls}">${pc.extraLabel}</span>`   :'';
 
         const imgName=s.filename?`annotated_${s.filename}`:null;
         const thumb=imgName
@@ -298,7 +306,7 @@ function renderTable() {
           <td><div class="items-cell">${tags||'<span style="color:var(--muted);font-size:.72rem">ไม่มีรายการ</span>'}</div></td>
           <td class="weight-cell">${wt}</td>
           <td>${pCell}</td>
-          <td>${vCell}</td>
+          <td>${mCell}${xCell?' '+xCell:''}</td>
           <td class="price-cell">฿${(s.total_price||0).toFixed(0)}${pc.priceNote?`<br><span style="font-size:.65rem;color:${pc.priceNote.startsWith('-')?'#fca5a5':'#fde68a'};font-weight:400;">${pc.priceNote}</span>`:''}</td>
           <td><div class="action-cell">
             <button class="btn-sm btn-view" onclick="viewDetail(${s.id})">ดู</button>
@@ -354,12 +362,12 @@ async function viewDetail(id){
           <div class="detail-row"><span class="detail-key">วันเวลา</span><span class="detail-value">${new Date(s.created_at).toLocaleString('th-TH')}</span></div>
           <div class="detail-row"><span class="detail-key">น้ำหนักรวม</span><span class="detail-value">${s.weight_grams>0?s.weight_grams.toFixed(1)+' กรัม':'—'}</span></div>
           <div class="detail-row">
-            <span class="detail-key">ปริมาณ</span>
-            <span class="detail-value">${pc.portionCls?`<span class="${pc.portionCls}">${pc.portionLabel}</span>`:'—'}</span>
+            <span class="detail-key">ประเภท</span>
+            <span class="detail-value">${pc.menuCls?`<span class="${pc.menuCls}">${pc.menuLabel}</span>`:'—'}</span>
           </div>
           <div class="detail-row">
-            <span class="detail-key">ประเภท</span>
-            <span class="detail-value">${pc.valueCls?`<span class="${pc.valueCls}">${pc.valueLabel}</span>`:'—'}</span>
+            <span class="detail-key">ปริมาณ</span>
+            <span class="detail-value" style="display:flex;gap:6px;flex-wrap:wrap;">${pc.portionCls?`<span class="${pc.portionCls}">${pc.portionLabel}</span>`:'—'}${pc.extraCls?` <span class="${pc.extraCls}">${pc.extraLabel}</span>`:''}</span>
           </div>
           <div class="detail-row"><span class="detail-key">ราคารวม</span><span class="detail-value" style="color:var(--green);font-family:var(--font-mono);font-size:1.1rem">฿${(s.total_price||0).toFixed(0)}</span></div>
           <div style="margin-top:14px;">
@@ -395,7 +403,7 @@ function exportCSV(){
         const mainName=mainItem?(mainItem.food_name_th||mainItem.food_name):'';
         const pc=classifyWeight(mainName, s.weight_grams);
         const names=(s.items||[]).map(i=>i.food_name_th||i.food_name).join(' | ');
-        rows.push([s.id,s.created_at,s.weight_grams.toFixed(1),pc.portionLabel,pc.valueLabel,s.total_price.toFixed(0),names]);
+        rows.push([s.id,s.created_at,s.weight_grams.toFixed(1),pc.menuLabel,pc.portionLabel,pc.extraLabel||'',s.total_price.toFixed(0),names]);
     });
     const csv=rows.map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
     const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'});
