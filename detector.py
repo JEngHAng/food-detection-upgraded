@@ -119,13 +119,46 @@ class FoodDetector:
             return {"success": False, "error": "Model not initialized"}
         return self._detect_yolo(image_path)
 
+    @staticmethod
+    def _aggregate_ingredients(detections: list[dict]) -> dict[str, dict]:
+        """
+        รวม detections ที่เป็นวัตถุดิบชนิดเดียวกัน (name เดียวกัน) เข้าด้วยกัน
+        เช่น ตรวจเจอ chicken_boiled 3 bbox -> รวมเป็น 1 รายการ count=3
+
+        คืนค่าเป็น dict {name: {count, confidence(เฉลี่ย), max_confidence, bboxes}}
+        """
+        grouped: dict[str, dict] = {}
+        for d in detections:
+            name = d["name"]
+            g = grouped.setdefault(name, {
+                "name": name,
+                "count": 0,
+                "_conf_sum": 0.0,
+                "max_confidence": 0.0,
+                "bboxes": [],
+            })
+            g["count"] += 1
+            g["_conf_sum"] += d.get("confidence", 0)
+            g["max_confidence"] = max(g["max_confidence"], d.get("confidence", 0))
+            g["bboxes"].append(d.get("bbox"))
+
+        for g in grouped.values():
+            g["confidence"] = round(g["_conf_sum"] / g["count"], 2) if g["count"] else 0
+            del g["_conf_sum"]
+
+        return grouped
+
     def _build_menu_result(self, detections: list[dict]) -> list[dict]:
         """
         จับคู่เมนูโดยใช้ menu_ingredients.json
         รองรับ min_match และ bonus_ingredients
         ตัด required_ingredients ออกแล้ว — ใช้ rules ใน menu_ingredients.json แทน
+
+        ingredients ในผลลัพธ์จะถูกรวมตามชนิด (ชื่อเดียวกัน) แล้วบอกจำนวนที่เจอ (count)
+        แทนการ list ทุก bounding box แยกกัน
         """
-        detected_set = set(d["name"] for d in detections)
+        ingredient_groups = self._aggregate_ingredients(detections)
+        detected_set = set(ingredient_groups.keys())
         results = []
         used_main = set()
 
@@ -180,13 +213,17 @@ class FoodDetector:
                 ),
                 "ingredients": [
                     {
-                        "name": d["name"],
-                        "name_th": self.menu.get(d["name"], {}).get("name_th", d["name"]),
-                        "confidence": d["confidence"],
-                        "bbox": d["bbox"],
+                        "name": g["name"],
+                        "name_th": self.menu.get(g["name"], {}).get("name_th", g["name"]),
+                        "confidence": g["confidence"],
+                        "count": g["count"],
+                        "bboxes": g["bboxes"],
                     }
-                    for d in detections
-                    if d["name"] in set(menu.get("ingredients", []))
+                    for g in (
+                        ingredient_groups[name]
+                        for name in menu.get("ingredients", [])
+                        if name in ingredient_groups
+                    )
                 ],
             })
             used_main.update(main_matched)

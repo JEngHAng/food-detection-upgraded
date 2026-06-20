@@ -267,7 +267,7 @@ function renderResult(data) {
                 <div id="ing-${idx}" style="display:none;background:rgba(0,0,0,0.3);border-top:1px solid rgba(255,255,255,0.15);padding:10px 14px;">
                     ${ingredients.map(ing => `
                         <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:0.82rem;color:rgba(255,255,255,0.85);">
-                            <span>• ${ing.name_th||ing.name}</span>
+                            <span>• ${ing.name_th||ing.name}${ing.count?` <span style="opacity:0.6;">x${ing.count}</span>`:''}</span>
                             <span style="opacity:0.7;">${ing.confidence?Math.round(ing.confidence*100)+'%':''}</span>
                         </div>`).join("")}
                 </div>` : '';

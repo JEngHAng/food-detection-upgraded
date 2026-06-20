@@ -25,7 +25,7 @@ body.light {
   --text-soft: #475569;
   --muted: #64748b;
 }
-body.light .title-bar { background: #ffffff; }
+body.light .title-bar { background: #cbd5e1; }
 body.light .camera-box,
 body.light .result-img-wrap,
 body.light #loading-overlay { background: #0d0e1a; }
