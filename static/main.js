@@ -331,11 +331,29 @@ async function rescan() {
 // Utility
 // ══════════════════════════════════════════════════════
 function startCountdown(seconds) {
-    let n=seconds;
-    const el=getEl("countdown-num");
-    const timer=setInterval(()=>{ n--; if(el) el.textContent=n; if(n<=0){clearInterval(timer);goHome();} },1000);
+    setTimeout(goHome, seconds * 1000);
 }
 function showScreen(id) { document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active")); getEl(id)?.classList.add("active"); }
+
+// ══════════════════════════════════════════════════════
+// Theme (light / dark)
+// ══════════════════════════════════════════════════════
+function applyTheme(mode) {
+    const isLight = mode === "light";
+    document.body.classList.toggle("light", isLight);
+    document.documentElement.classList.toggle("light", isLight);
+    const btn = getEl("btn-theme");
+    if (btn) btn.textContent = isLight ? "☀️ โทนสว่าง" : "🌙 โทนมืด";
+}
+function toggleTheme() {
+    const next = document.body.classList.contains("light") ? "dark" : "light";
+    localStorage.setItem("theme", next);
+    applyTheme(next);
+}
+function initTheme() {
+    const saved = localStorage.getItem("theme") || "dark";
+    applyTheme(saved);
+}
 async function goHome() {
     if (piCapturedFilename) {
         try { await fetch("/api/cleanup",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({filename:piCapturedFilename})}); }
@@ -354,7 +372,7 @@ async function confirmShutdown() {
         document.body.innerHTML=`<div style="display:flex;align-items:center;justify-content:center;height:100vh;background:#16172b;color:#e2e8f0;font-family:IBM Plex Sans Thai,sans-serif;flex-direction:column;gap:16px;"><div style="font-size:2rem;">⏹</div><div style="font-size:1.2rem;font-weight:700;">ปิดระบบเรียบร้อย</div><div style="font-size:0.85rem;color:#94a3b8;">สามารถปิดหน้าต่างได้แล้ว</div></div>`;
     },1000);
 }
-window.onload=()=>{ console.log("✅ ระบบพร้อมใช้งาน"); startWeightStream(); checkAutoTare(); };
+window.onload=()=>{ console.log("✅ ระบบพร้อมใช้งาน"); initTheme(); startWeightStream(); checkAutoTare(); };
 async function checkAutoTare() {
     document.querySelectorAll(".weight-display").forEach(el=>el.textContent="...");
     showLoading(true,"⚖️ กำลัง Tare เครื่องชั่งอัตโนมัติ...");

@@ -12,12 +12,27 @@
   --orange:#f0883e; --red:#f85149; --yellow:#d29922;
   --font-th:'IBM Plex Sans Thai',sans-serif; --font-mono:'Space Mono',monospace;
 }
+html.light, body.light {
+  --bg:#f1f5f9; --surface:#ffffff; --surface2:#e7ecf3; --border:#d8dee8;
+  --text:#1e293b; --muted:#64748b; --green:#15803d; --blue:#1d4ed8;
+  --orange:#c2570a; --red:#b91c1c; --yellow:#a16207;
+}
+body.light tbody tr:hover { background: var(--surface2); }
+body.light .modal-backdrop { background: rgba(15,23,42,.45); }
+body.light .no-img { color: var(--muted); }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
 html,body{background:var(--bg);color:var(--text);font-family:var(--font-th);min-height:100vh;}
+html.light{background:#f1f5f9;}
+::-webkit-scrollbar{width:8px;height:8px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--surface2);border-radius:4px;}
 .header{background:var(--surface);border-bottom:1px solid var(--border);padding:16px 28px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50;}
 .header-title{font-size:1rem;font-weight:700;}
 .header-back{display:flex;align-items:center;gap:6px;color:var(--blue);font-size:.78rem;text-decoration:none;font-family:var(--font-mono);padding:6px 12px;border:1px solid rgba(88,166,255,.3);border-radius:6px;transition:background .15s;}
 .header-back:hover{background:rgba(88,166,255,.08);}
+.header-actions{display:flex;align-items:center;gap:10px;}
+.btn-theme-toggle{padding:6px 14px;border-radius:6px;cursor:pointer;background:var(--surface2);border:1px solid var(--border);color:var(--text);font-size:.78rem;font-family:var(--font-th);font-weight:500;display:flex;align-items:center;gap:6px;transition:all .15s;}
+.btn-theme-toggle:hover{border-color:var(--blue);}
 .page{max-width:1150px;margin:0 auto;padding:24px 20px 60px;}
 .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px;}
 @media(max-width:640px){.stats{grid-template-columns:1fr 1fr;}}
@@ -110,10 +125,13 @@ tbody td{padding:9px 12px;vertical-align:middle;}
 
 <div class="header">
   <div class="header-title">ประวัติการตรวจจับอาหาร</div>
-  <a href="/" class="header-back">
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
-    กลับหน้าหลัก
-  </a>
+  <div class="header-actions">
+    <button class="btn-theme-toggle" id="btn-theme" onclick="toggleTheme()">🌙 โทนมืด</button>
+    <a href="/" class="header-back">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+      กลับหน้าหลัก
+    </a>
+  </div>
 </div>
 
 <div class="page">
@@ -174,6 +192,21 @@ tbody td{padding:9px 12px;vertical-align:middle;}
 <div id="toast"></div>
 
 <script>
+// ── Theme (light / dark) — sync กับหน้า Home ผ่าน localStorage key เดียวกัน ──
+function applyTheme(mode){
+    const isLight = mode === 'light';
+    document.body.classList.toggle('light', isLight);
+    document.documentElement.classList.toggle('light', isLight);
+    const btn = document.getElementById('btn-theme');
+    if (btn) btn.textContent = isLight ? '☀️ โทนสว่าง' : '🌙 โทนมืด';
+}
+function toggleTheme(){
+    const next = document.body.classList.contains('light') ? 'dark' : 'light';
+    localStorage.setItem('theme', next);
+    applyTheme(next);
+}
+applyTheme(localStorage.getItem('theme') || 'dark');
+
 // ── Weight threshold (ต้องตรงกับ main.js) ──────────────
 const WEIGHT_THRESHOLDS = {
     "ข้าวหน้าเป็ด":      { n:446, s:510, e:5  },

@@ -118,10 +118,13 @@
       <div class="action-bar" style="justify-content:space-between;padding:10px 20px;">
         <!-- ส่วนที่เพิ่มปุ่มปิดระบบอยู่ตรงนี้ครับ  -->
         <div style="display:flex;gap:8px;">
-          <button onclick="location.href='/history'" style="padding:14px 24px;border:none;border-radius:999px;background:#334155;color:#94a3b8;font-family:inherit;font-size:0.9rem;font-weight:700;cursor:pointer;min-height:52px;">
+          <button class="btn-history" onclick="location.href='/history'">
             ประวัติ
           </button>
-          <button onclick="confirmShutdown()" style="padding:14px 24px;border:none;border-radius:999px;background:#7f1d1d;color:#fca5a5;font-family:inherit;font-size:0.9rem;font-weight:700;cursor:pointer;min-height:52px;">
+          <button id="btn-theme" class="btn-theme" onclick="toggleTheme()">
+            🌙 โทนมืด
+          </button>
+          <button class="btn-shutdown" onclick="confirmShutdown()">
             ⏹ ปิดระบบ
           </button>
         </div>
@@ -193,9 +196,7 @@
           <p class="end-line-sub">ขอบคุณสำหรับการใช้งาน</p>
           <p class="end-line-sub">กำลังกลับสู่หน้าแรก...</p>
           <div class="countdown-wrap">
-            <h1 id="countdown-num" style="color: #f97316; font-size: 3rem">
-              5
-            </h1>
+            <div class="end-spinner"></div>
           </div>
         </div>
       </div>

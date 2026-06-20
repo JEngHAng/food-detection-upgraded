@@ -16,6 +16,22 @@
   --r-sm: 10px;
 }
 
+body.light {
+  --bg: #f1f5f9;
+  --panel: #ffffff;
+  --panel2: #e7ecf3;
+  --border: rgba(15, 23, 42, 0.1);
+  --text: #1e293b;
+  --text-soft: #475569;
+  --muted: #64748b;
+}
+body.light .title-bar { background: #ffffff; }
+body.light .camera-box,
+body.light .result-img-wrap,
+body.light #loading-overlay { background: #0d0e1a; }
+body.light .action-bar { background: #ffffff; }
+body.light #toast { background: var(--panel); color: var(--text); }
+
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 html, body {
@@ -30,6 +46,11 @@ html, body {
   user-select: none;
   -webkit-font-smoothing: antialiased;
 }
+html.light { background: #f1f5f9; }
+
+::-webkit-scrollbar { width: 3px; height: 3px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--panel2); border-radius: 2px; }
 
 .screen {
   position: absolute;
@@ -290,6 +311,7 @@ html, body {
 /* ══ Result right ══ */
 .result-right { gap: 8px; overflow-y: auto; }
 .result-right::-webkit-scrollbar { width: 3px; }
+.result-right::-webkit-scrollbar-track { background: transparent; }
 .result-right::-webkit-scrollbar-thumb { background: var(--panel2); border-radius: 2px; }
 
 .menu-list { display: flex; flex-direction: column; gap: 8px; flex-shrink: 0; }
@@ -341,6 +363,14 @@ html, body {
 .end-line-main { font-size: 1.4rem; font-weight: 700; color: var(--text); }
 .end-line-sub  { font-size: 0.95rem; color: var(--text-soft); }
 .countdown-wrap { margin-top: 12px; }
+.end-spinner {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: 4px solid var(--panel2);
+  border-top-color: #f97316;
+  animation: spin 0.85s linear infinite;
+}
 
 /* ══ Loading ══ */
 #loading-overlay {
@@ -406,3 +436,44 @@ html, body {
   transition: transform 0.15s, box-shadow 0.15s;
 }
 .btn-rescan:active { transform: scale(0.97); }
+
+/* ══ Theme toggle ══ */
+.btn-theme {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 14px 20px;
+  border: none;
+  border-radius: 999px;
+  background: var(--panel2);
+  color: var(--text);
+  font-family: var(--font-th);
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+  min-height: 52px;
+  transition: transform 0.15s, background 0.2s;
+}
+.btn-theme:active { transform: scale(0.97); }
+
+/* ══ History / Shutdown buttons ══ */
+.btn-history,
+.btn-shutdown {
+  padding: 14px 24px;
+  border: none;
+  border-radius: 999px;
+  font-family: var(--font-th);
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+  min-height: 52px;
+  transition: transform 0.15s, background 0.2s, color 0.2s;
+}
+.btn-history:active,
+.btn-shutdown:active { transform: scale(0.97); }
+
+.btn-history { background: #334155; color: #94a3b8; }
+.btn-shutdown { background: #7f1d1d; color: #fca5a5; }
+
+body.light .btn-history { background: #e2e8f0; color: #475569; }
+body.light .btn-shutdown { background: #fee2e2; color: #b91c1c; }
