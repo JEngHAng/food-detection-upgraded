@@ -1,18 +1,40 @@
 {
-  "_comment": "กำหนดเมนูหลักและวัตถุดิบ — ไม่ต้องเจอครบ แค่เจอวัตถุดิบหลักก็ถือว่าเป็นเมนูนั้นได้",
-  "_format": "ingredients = รายการทั้งหมด, main_ingredients = วัตถุดิบหลัก (ต้องเจออย่างน้อย min_match อย่าง), required_ingredients = ต้องเจอเสมอ (ถ้ามี), bonus_ingredients = เพิ่ม score การจับคู่",
-  "_main_ingredients_note": "ใช้ main_ingredients + required_ingredients + min_match สำหรับจับคู่เมนูจากผลตรวจจับ",
-
   "menus": [
+    {
+      "key": "chicken_rice_mixed",
+      "name_th": "ข้าวมันไก่ผสม",
+      "name_en": "Mixed Khao Man Gai",
+      "min_match": 2,
+      "main_ingredients": ["chicken_boiled", "chicken_fried"],
+      "bonus_ingredients": ["rice", "chicken_blood", "cucumber"],
+      "ingredients": ["rice", "chicken_boiled", "chicken_fried", "chicken_blood", "cucumber"]
+    },
+    {
+      "key": "chicken_rice_boiled",
+      "name_th": "ข้าวมันไก่ต้ม",
+      "name_en": "Boiled Khao Man Gai",
+      "min_match": 1,
+      "main_ingredients": ["chicken_boiled"],
+      "bonus_ingredients": ["rice", "chicken_blood", "cucumber"],
+      "ingredients": ["rice", "chicken_boiled", "chicken_blood", "cucumber"]
+    },
+    {
+      "key": "chicken_rice_fried",
+      "name_th": "ข้าวมันไก่ทอด",
+      "name_en": "Fried Khao Man Gai",
+      "min_match": 1,
+      "main_ingredients": ["chicken_fried"],
+      "bonus_ingredients": ["rice", "chicken_blood", "cucumber"],
+      "ingredients": ["rice", "chicken_fried", "chicken_blood", "cucumber"]
+    },
     {
       "key": "noodle_chicken_drumstick",
       "name_th": "ก๋วยเตี๋ยวไก่น่อง",
       "name_en": "Chicken Drumstick Noodle",
       "min_match": 1,
       "main_ingredients": ["chicken_drumstick"],
-      "required_ingredients": [],
-      "bonus_ingredients": ["noodle", "daikon_radish", "boiled_chicken_blood_jelly"],
-      "ingredients": ["noodle", "chicken_drumstick", "daikon_radish", "boiled_chicken_blood_jelly"]
+      "bonus_ingredients": ["noodle", "radish", "chicken_blood"],
+      "ingredients": ["noodle", "chicken_drumstick", "radish", "chicken_blood"]
     },
     {
       "key": "noodle_chicken_shredded",
@@ -20,49 +42,8 @@
       "name_en": "Shredded Chicken Noodle",
       "min_match": 1,
       "main_ingredients": ["chicken_shredded"],
-      "required_ingredients": [],
-      "bonus_ingredients": ["noodle", "daikon_radish", "boiled_chicken_blood_jelly"],
-      "ingredients": ["noodle", "chicken_shredded", "daikon_radish", "boiled_chicken_blood_jelly"]
-    },
-    {
-      "key": "chicken_rice_boiled",
-      "name_th": "ข้าวมันไก่ต้ม",
-      "name_en": "Boiled Khao Man Gai",
-      "min_match": 1,
-      "main_ingredients": ["boiled_chicken"],
-      "required_ingredients": ["chicken_rice"],
-      "bonus_ingredients": ["cucumber", "rice"],
-      "ingredients": ["chicken_rice", "boiled_chicken", "cucumber", "rice", "boiled_chicken_blood_jelly"]
-    },
-    {
-      "key": "chicken_rice_fried",
-      "name_th": "ข้าวมันไก่ทอด",
-      "name_en": "Fried Khao Man Gai",
-      "min_match": 1,
-      "main_ingredients": ["fried_chicken"],
-      "required_ingredients": ["chicken_rice"],
-      "bonus_ingredients": ["cucumber", "rice"],
-      "ingredients": ["chicken_rice", "fried_chicken", "cucumber", "rice", "boiled_chicken_blood_jelly"]
-    },
-    {
-      "key": "chicken_rice_mixed",
-      "name_th": "ข้าวมันไก่ทอดไก่ต้ม (ผสม)",
-      "name_en": "Mixed Khao Man Gai",
-      "min_match": 2,
-      "main_ingredients": ["fried_chicken", "boiled_chicken"],
-      "required_ingredients": ["chicken_rice"],
-      "bonus_ingredients": ["cucumber", "rice"],
-      "ingredients": ["chicken_rice", "boiled_chicken", "fried_chicken", "cucumber", "rice", "boiled_chicken_blood_jelly"]
-    },
-    {
-      "key": "chicken_rice_grilled",
-      "name_th": "ข้าวมันไก่ย่าง",
-      "name_en": "Grilled Khao Man Gai",
-      "min_match": 1,
-      "main_ingredients": ["grilled_chicken"],
-      "required_ingredients": ["chicken_rice"],
-      "bonus_ingredients": ["cucumber", "rice"],
-      "ingredients": ["chicken_rice", "grilled_chicken", "cucumber", "rice"]
+      "bonus_ingredients": ["noodle", "radish", "chicken_blood"],
+      "ingredients": ["noodle", "chicken_shredded", "radish", "chicken_blood"]
     },
     {
       "key": "stir_fried_basil_minced_pork",
@@ -70,49 +51,8 @@
       "name_en": "Stir-fried Basil Minced Pork Rice",
       "min_match": 1,
       "main_ingredients": ["minced_pork"],
-      "required_ingredients": ["stir_fried_basil"],
-      "bonus_ingredients": ["rice"],
-      "ingredients": ["rice", "stir_fried_basil", "minced_pork"]
-    },
-    {
-      "key": "stir_fried_basil_minced_pork_tofu",
-      "name_th": "ข้าวผัดกะเพราหมูสับเต้าหู้",
-      "name_en": "Stir-fried Basil Minced Pork Tofu Rice",
-      "min_match": 2,
-      "main_ingredients": ["minced_pork", "fried_tofo"],
-      "required_ingredients": ["stir_fried_basil"],
-      "bonus_ingredients": ["rice"],
-      "ingredients": ["rice", "stir_fried_basil", "minced_pork", "fried_tofo"]
-    },
-    {
-      "key": "rice_crispy_pork",
-      "name_th": "ข้าวหมูกรอบ",
-      "name_en": "Crispy Pork Rice",
-      "min_match": 1,
-      "main_ingredients": ["crispy_pork"],
-      "required_ingredients": [],
-      "bonus_ingredients": ["rice", "pickled_ginger", "boiled_vegetables"],
-      "ingredients": ["rice", "crispy_pork", "pickled_ginger", "boiled_vegetables"]
-    },
-    {
-      "key": "rice_red_pork",
-      "name_th": "ข้าวหมูแดง",
-      "name_en": "Rice with Red Pork",
-      "min_match": 1,
-      "main_ingredients": ["red_pork"],
-      "required_ingredients": [],
-      "bonus_ingredients": ["rice", "cucumber"],
-      "ingredients": ["rice", "red_pork", "cucumber"]
-    },
-    {
-      "key": "red_pork_and_crispy_pork",
-      "name_th": "ข้าวหมูกรอบหมูแดง (ผสม)",
-      "name_en": "Red Pork & Crispy Pork Rice",
-      "min_match": 2,
-      "main_ingredients": ["crispy_pork", "red_pork"],
-      "required_ingredients": [],
-      "bonus_ingredients": ["rice", "boiled_egg", "chainese_sausage", "cucumber"],
-      "ingredients": ["rice", "crispy_pork", "red_pork", "boiled_egg", "chainese_sausage", "cucumber"]
+      "bonus_ingredients": ["rice", "holy_basil"],
+      "ingredients": ["rice", "minced_pork", "holy_basil"]
     },
     {
       "key": "roast_duck_rice",
@@ -120,9 +60,8 @@
       "name_en": "Roast Duck Rice",
       "min_match": 1,
       "main_ingredients": ["roast_duck"],
-      "required_ingredients": [],
-      "bonus_ingredients": ["rice", "pickled_ginger", "boiled_vegetables"],
-      "ingredients": ["roast_duck", "rice", "pickled_ginger", "boiled_vegetables"]
+      "bonus_ingredients": ["rice", "vegetable_boiled", "ginger"],
+      "ingredients": ["roast_duck", "rice", "vegetable_boiled", "ginger"]
     }
   ]
 }

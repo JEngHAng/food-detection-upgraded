@@ -48,7 +48,7 @@ class ServerConfig:
 class DetectionConfig:
     CONFIDENCE    = float(os.getenv("CONFIDENCE", 0.35))  # ความมั่นใจขั้นต่ำ (0.0–1.0)
     IOU_THRESHOLD = 0.7             # Intersection over Union threshold
-    IMG_SIZE      = 800               # ขนาดภาพที่ส่งให้ YOLO
+    IMG_SIZE      = 1280               # ขนาดภาพที่ส่งให้ YOLO
     MAX_DETECTIONS = 10               # จำนวน detection สูงสุดต่อภาภ
 
 

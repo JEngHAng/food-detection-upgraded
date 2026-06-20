@@ -120,113 +120,104 @@ async function goToEnd() {
 // ══════════════════════════════════════════════════════
 
 /**
- * threshold_normal = น้ำหนักปกติ "ธรรมดา"
- * threshold_special = น้ำหนักปกติ "พิเศษ"
- * ราคาธรรมดา = dish.price (จาก AI)
- * ราคาพิเศษ  = dish.price + 5
+ * n   = น้ำหนักมาตรฐาน "ธรรมดา"
+ * s   = น้ำหนักมาตรฐาน "พิเศษ"
+ * e   = ราคาเพิ่มพิเศษ
+ * tol = tolerance ±กรัม รอบ n และ s
+ *
+ * Zone:
+ *  A  w < n-tol              → ธรรมดา น้อยกว่าปกติ    basePrice - discount
+ *  B  n-tol ≤ w ≤ n+tol     → ธรรมดา ปกติ             basePrice
+ *  C  n+tol < w < s-tol     → ธรรมดา มากกว่าปกติ      basePrice
+ *  D  s-tol ≤ w ≤ s+tol     → พิเศษ  ปกติ             basePrice + e
+ *  E  w > s+tol              → พิเศษ  มากกว่าปกติ      basePrice + e
  */
 const WEIGHT_THRESHOLDS = {
-    //                           normal  special  priceExtra(พิเศษ-ธรรมดา)
-    "ข้าวหน้าเป็ด":      { n: 446,  s: 510,  e: 5  },
-    "ข้าวหมูกรอบ":       { n: 435,  s: 500,  e: 5  },
-    "ข้าวผัดกะเพรา":     { n: 434,  s: 498,  e: 5  },
-    "ข้าวมันไก่ทอด":     { n: 420,  s: 480,  e: 5  },
-    "ข้าวมันไก่ต้ม":     { n: 420,  s: 480,  e: 5  },
-    "ก๋วยเตี๋ยวไก่ฉีก":  { n: 631,  s: 871,  e: 15 },
-    "ก๋วยเตี๋ยวไก่น่อง": { n: 631,  s: 871,  e: 15 },
+    "ข้าวหน้าเป็ด":  { n: 446, s: 510, e: 5,  tol: 10 },
+    "ข้าวเป็ดย่าง":  { n: 446, s: 510, e: 5,  tol: 10 },
+    "ข้าวผัดกะเพรา": { n: 434, s: 498, e: 5,  tol: 10 },
+    "ข้าวมันไก่":    { n: 420, s: 480, e: 5,  tol: 10 },
+    "ก๋วยเตี๋ยวไก่": { n: 631, s: 871, e: 15, tol: 10 },
 };
-const DEFAULT_THRESHOLD = { n: 420, s: 500, e: 5 };
+const DEFAULT_THRESHOLD = { n: 420, s: 500, e: 5, tol: 10 };
 
 function getThreshold(foodName) {
     if (!foodName) return DEFAULT_THRESHOLD;
     for (const [key, val] of Object.entries(WEIGHT_THRESHOLDS)) {
         if (foodName.includes(key)) return val;
     }
+    console.warn("⚠️ ไม่พบ threshold สำหรับ:", foodName, "→ ใช้ค่า default");
     return DEFAULT_THRESHOLD;
 }
 
-/**
- * คืน { menuType, portionLabel, portionStyle, typeStyle, basePrice, priceNote, finalPrice }
- *
- * Zone:
- *  A  w < n×0.70              → ธรรมดา ปริมาณน้อยกว่าปกติ   basePrice - discount
- *  B  n×0.70 ≤ w < n          → ธรรมดา ปริมาณปกติ            basePrice
- *  C  n ≤ w < s×0.70          → พิเศษ  ปริมาณน้อยกว่าปกติ   basePrice+5 - discount
- *  D  s×0.70 ≤ w < s          → พิเศษ  ปริมาณปกติ            basePrice+5
- *  E  w ≥ s                   → พิเศษ  ปริมาณมากกว่าปกติ     basePrice+5
- */
 function classifyWeight(foodName, dishWeight, basePrice) {
-    const t        = getThreshold(foodName);
-    const priceN   = Math.round(basePrice);          // ราคาธรรมดา
-    const priceS   = Math.round(basePrice) + t.e;    // ราคาพิเศษ (บวกตามแต่ละเมนู)
+    const t      = getThreshold(foodName);
+    const priceN = Math.round(basePrice);
+    const priceS = Math.round(basePrice) + t.e;
 
     const S_NORMAL = "font-size:0.72rem;font-weight:700;border-radius:6px;padding:2px 8px;white-space:nowrap;";
     const mkBadge  = (bg, color, border) =>
         `${S_NORMAL}background:${bg};color:${color};border:1px solid ${border};`;
 
-    // styles
     const st = {
-        normalMenu:   mkBadge("rgba(148,163,184,0.12)", "#cbd5e1",  "rgba(148,163,184,0.25)"),
-        specialMenu:  mkBadge("#f59e0b",                "#1c1917",  "#f59e0b"),
-        portionLow:   mkBadge("rgba(248,81,73,0.15)",   "#fca5a5",  "rgba(248,81,73,0.3)"),
-        portionNorm:  mkBadge("rgba(34,197,94,0.12)",   "#86efac",  "rgba(34,197,94,0.25)"),
-        portionHigh:  mkBadge("rgba(99,102,241,0.15)",  "#c4b5fd",  "rgba(99,102,241,0.3)"),
-        notworth:     mkBadge("rgba(248,81,73,0.18)",   "#f87171",  "rgba(248,81,73,0.35)"),
+        normalMenu:  mkBadge("rgba(148,163,184,0.12)", "#cbd5e1", "rgba(148,163,184,0.25)"),
+        specialMenu: mkBadge("#f59e0b",                "#1c1917", "#f59e0b"),
+        portionLow:  mkBadge("rgba(248,81,73,0.15)",   "#fca5a5", "rgba(248,81,73,0.3)"),
+        portionNorm: mkBadge("rgba(34,197,94,0.12)",   "#86efac", "rgba(34,197,94,0.25)"),
+        portionHigh: mkBadge("rgba(99,102,241,0.15)",  "#c4b5fd", "rgba(99,102,241,0.3)"),
+        notworth:    mkBadge("rgba(248,81,73,0.18)",   "#f87171", "rgba(248,81,73,0.35)"),
     };
 
     if (!dishWeight || dishWeight <= 0) {
         return { menuType:"—", portionLabel:"—", portionStyle:"display:none;", typeStyle:"display:none;", finalPrice:priceN, priceNote:"" };
     }
 
-    // Zone A — ธรรมดา ปริมาณน้อย
-    if (dishWeight < t.n * 0.70) {
+    // Zone A — ธรรมดา น้อยกว่าปกติ (w < n-tol)
+    if (dishWeight < t.n - t.tol) {
         const shortfall = t.n - dishWeight;
         const discount  = Math.floor(shortfall / 100) * 10;
         const fp        = Math.max(priceN - discount, 0);
         return {
-            menuType:     "ธรรมดา",    typeStyle:    st.normalMenu,
+            menuType:     "ธรรมดา",         typeStyle:    st.normalMenu,
             portionLabel: "🔽 น้อยกว่าปกติ", portionStyle: st.portionLow,
-            valueBadge:   "❌ ไม่คุ้มค่า",  valueStyle:   st.notworth,
+            valueBadge:   "❌ ไม่คุ้มค่า",   valueStyle:   st.notworth,
             finalPrice:   fp,
             priceNote:    `${priceN}฿ - ${discount}฿ = ${fp}฿`,
         };
     }
-    // Zone B — ธรรมดา ปริมาณปกติ
-    if (dishWeight < t.n) {
+    // Zone B — ธรรมดา ปกติ (n-tol ≤ w ≤ n+tol)
+    if (dishWeight <= t.n + t.tol) {
         return {
-            menuType:     "ธรรมดา",    typeStyle:    st.normalMenu,
+            menuType:     "ธรรมดา",      typeStyle:    st.normalMenu,
             portionLabel: "✅ ปริมาณปกติ", portionStyle: st.portionNorm,
-            valueBadge:   "",            valueStyle:   "display:none;",
+            valueBadge:   "",             valueStyle:   "display:none;",
             finalPrice:   priceN,
             priceNote:    `${priceN}฿`,
         };
     }
-    // Zone C — พิเศษ ปริมาณน้อยกว่าปกติพิเศษ (n ≤ w < s×0.70)
-    if (dishWeight < t.s * 0.70) {
-        const shortfall = t.s - dishWeight;
-        const discount  = Math.floor(shortfall / 100) * 10;
-        const fp        = Math.max(priceS - discount, 0);
+    // Zone C — ธรรมดา มากกว่าปกติ (n+tol < w < s-tol)
+    if (dishWeight < t.s - t.tol) {
         return {
-            menuType:     "⭐ พิเศษ",  typeStyle:    st.specialMenu,
-            portionLabel: "🔽 น้อยกว่าปกติ", portionStyle: st.portionLow,
-            valueBadge:   "❌ ไม่คุ้มค่า",  valueStyle:   st.notworth,
-            finalPrice:   fp,
-            priceNote:    `${priceS}฿ - ${discount}฿ = ${fp}฿`,
+            menuType:     "ธรรมดา",         typeStyle:    st.normalMenu,
+            portionLabel: "🔼 มากกว่าปกติ", portionStyle: st.portionHigh,
+            valueBadge:   "",               valueStyle:   "display:none;",
+            finalPrice:   priceN,
+            priceNote:    `${priceN}฿`,
         };
     }
-    // Zone D — พิเศษ ปริมาณปกติ (s×0.70 ≤ w < s)
-    if (dishWeight < t.s) {
+    // Zone D — พิเศษ ปกติ (s-tol ≤ w ≤ s+tol)
+    if (dishWeight <= t.s + t.tol) {
         return {
-            menuType:     "⭐ พิเศษ",  typeStyle:    st.specialMenu,
+            menuType:     "⭐ พิเศษ",     typeStyle:    st.specialMenu,
             portionLabel: "✅ ปริมาณปกติ", portionStyle: st.portionNorm,
-            valueBadge:   "",            valueStyle:   "display:none;",
+            valueBadge:   "",             valueStyle:   "display:none;",
             finalPrice:   priceS,
             priceNote:    `${priceN}฿ + ${t.e}฿ = ${priceS}฿`,
         };
     }
-    // Zone E — พิเศษ ปริมาณมาก (w ≥ s)
+    // Zone E — พิเศษ มากกว่าปกติ (w > s+tol)
     return {
-        menuType:     "⭐ พิเศษ",      typeStyle:    st.specialMenu,
+        menuType:     "⭐ พิเศษ",       typeStyle:    st.specialMenu,
         portionLabel: "🔼 มากกว่าปกติ", portionStyle: st.portionHigh,
         valueBadge:   "",              valueStyle:   "display:none;",
         finalPrice:   priceS,

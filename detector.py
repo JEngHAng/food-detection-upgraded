@@ -119,51 +119,11 @@ class FoodDetector:
             return {"success": False, "error": "Model not initialized"}
         return self._detect_yolo(image_path)
 
-    def _match_menu(self, detected_classes: list[str]) -> dict:
-        detected_set = set(detected_classes)
-        best_match = None
-        best_score = -1
-
-        for class_name, item in self.menu.items():
-            if not isinstance(item, dict) or not item.get("is_main"):
-                continue
-            if class_name not in detected_set:
-                continue
-
-            if "menus" in item:
-                for sub in item["menus"]:
-                    ingredients = set(sub.get("ingredients", []))
-                    score = len(ingredients & detected_set)
-                    if score > best_score:
-                        best_score = score
-                        best_match = {
-                            "class_name": class_name,
-                            "name_th": sub["name_th"],
-                            "name_en": sub["name_en"],
-                            "price": sub["price"],
-                            "ingredients": sub.get("ingredients", []),
-                            "score": score,
-                        }
-            else:
-                ingredients = set(item.get("ingredients", []))
-                score = len(ingredients & detected_set) if ingredients else 1
-                if score > best_score:
-                    best_score = score
-                    best_match = {
-                        "class_name": class_name,
-                        "name_th": item["name_th"],
-                        "name_en": item["name_en"],
-                        "price": item["price"],
-                        "ingredients": item.get("ingredients", []),
-                        "score": score,
-                    }
-
-        return best_match
-
     def _build_menu_result(self, detections: list[dict]) -> list[dict]:
         """
         จับคู่เมนูโดยใช้ menu_ingredients.json
-        รองรับ min_match, required_ingredients, bonus_ingredients
+        รองรับ min_match และ bonus_ingredients
+        ตัด required_ingredients ออกแล้ว — ใช้ rules ใน menu_ingredients.json แทน
         """
         detected_set = set(d["name"] for d in detections)
         results = []
@@ -172,15 +132,11 @@ class FoodDetector:
         candidates = []
         for menu in self.menu_ingredients.get("menus", []):
             main = set(menu.get("main_ingredients", []))
-            required = set(menu.get("required_ingredients", []))
             bonus = set(menu.get("bonus_ingredients", []))
             min_match = menu.get("min_match", 1)
 
             main_matched = main & detected_set
             if len(main_matched) < min_match:
-                continue
-
-            if required and not required.issubset(detected_set):
                 continue
 
             score = len(main_matched) + len(bonus & detected_set)

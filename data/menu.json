@@ -5,54 +5,28 @@
     "price": 40,
     "unit": "จาน",
     "is_main": true,
+    "weight_n": 420,
+    "weight_s": 480,
+    "price_special": 5,
+    "special_desc": "เพิ่มปริมาณ",
     "menus": [
       {
         "name_th": "ข้าวมันไก่ต้ม",
         "name_en": "Boiled Khao Man Gai",
         "price": 40,
-        "ingredients": [
-          "chicken_rice",
-          "rice",
-          "boiled_chicken",
-          "boiled_chicken_blood_jelly",
-          "cucumber"
-        ]
+        "ingredients": ["rice", "chicken_boiled", "chicken_blood", "cucumber"]
       },
       {
         "name_th": "ข้าวมันไก่ทอด",
         "name_en": "Fried Khao Man Gai",
         "price": 40,
-        "ingredients": [
-          "chicken_rice",
-          "rice",
-          "fried_chicken",
-          "boiled_chicken_blood_jelly",
-          "cucumber"
-        ]
-      },
-      {
-        "name_th": "ข้าวมันไก่ย่าง",
-        "name_en": "Grilled Khao Man Gai",
-        "price": 40,
-        "ingredients": [
-          "chicken_rice",
-          "rice",
-          "grilled_chicken",
-          "cucumber"
-        ]
+        "ingredients": ["rice", "chicken_fried", "chicken_blood", "cucumber"]
       },
       {
         "name_th": "ข้าวมันไก่ผสม",
         "name_en": "Mixed Khao Man Gai",
         "price": 45,
-        "ingredients": [
-          "chicken_rice",
-          "rice",
-          "boiled_chicken",
-          "fried_chicken",
-          "boiled_chicken_blood_jelly",
-          "cucumber"
-        ]
+        "ingredients": ["rice", "chicken_boiled", "chicken_fried", "chicken_blood", "cucumber"]
       }
     ]
   },
@@ -62,12 +36,11 @@
     "price": 40,
     "unit": "ชาม",
     "is_main": true,
-    "ingredients": [
-      "noodle",
-      "chicken_drumstick",
-      "boiled_chicken_blood_jelly",
-      "daikon_radish"
-    ]
+    "weight_n": 631,
+    "weight_s": 871,
+    "price_special": 15,
+    "special_desc": "เพิ่มน่องไก่ 1 น่อง",
+    "ingredients": ["noodle", "chicken_drumstick", "chicken_blood", "radish"]
   },
   "noodle_chicken_shredded": {
     "name_th": "ก๋วยเตี๋ยวไก่ฉีก",
@@ -75,40 +48,11 @@
     "price": 40,
     "unit": "ชาม",
     "is_main": true,
-    "ingredients": [
-      "noodle",
-      "chicken_shredded",
-      "boiled_chicken_blood_jelly",
-      "daikon_radish"
-    ]
-  },
-  "red_pork_and_crispy_pork": {
-    "name_th": "ข้าวหมูแดงหมูกรอบ",
-    "name_en": "Red Pork & Crispy Pork Rice",
-    "price": 40,
-    "unit": "จาน",
-    "is_main": true,
-    "ingredients": [
-      "red_pork_and_crispy_pork",
-      "red_pork",
-      "crispy_pork",
-      "rice",
-      "chainese_sausage",
-      "boiled_egg"
-    ]
-  },
-  "crispy_pork": {
-    "name_th": "ข้าวหมูกรอบ",
-    "name_en": "Crispy Pork Rice",
-    "price": 40,
-    "unit": "จาน",
-    "is_main": true,
-    "ingredients": [
-      "crispy_pork",
-      "rice",
-      "pickled_ginger",
-      "boiled_vegetables"
-    ]
+    "weight_n": 631,
+    "weight_s": 871,
+    "price_special": 5,
+    "special_desc": "เพิ่มปริมาณ",
+    "ingredients": ["noodle", "chicken_shredded", "chicken_blood", "radish"]
   },
   "stir_fried_basil": {
     "name_th": "ข้าวผัดกะเพรา",
@@ -116,187 +60,45 @@
     "price": 35,
     "unit": "จาน",
     "is_main": true,
+    "weight_n": 434,
+    "weight_s": 498,
+    "price_special": 5,
+    "special_desc": "เพิ่มปริมาณ",
     "menus": [
       {
         "name_th": "ข้าวผัดกะเพราหมูสับ",
         "name_en": "Stir-fried Basil Minced Pork Rice",
         "price": 35,
-        "ingredients": [
-          "stir_fried_basil",
-          "rice",
-          "minced_pork"
-        ]
-      },
-      {
-        "name_th": "ข้าวผัดกะเพราหมูสับเต้าหู้",
-        "name_en": "Stir-fried Basil Minced Pork Tofu Rice",
-        "price": 45,
-        "ingredients": [
-          "stir_fried_basil",
-          "rice",
-          "minced_pork",
-          "fried_tofo"
-        ]
+        "ingredients": ["rice", "minced_pork", "holy_basil"]
       }
     ]
   },
-  "roaste_duck_rice": {
+  "roast_duck_rice": {
     "name_th": "ข้าวเป็ดย่าง",
     "name_en": "Roast Duck Rice",
     "price": 45,
     "unit": "จาน",
     "is_main": true,
-    "ingredients": [
-      "roaste_duck_rice",
-      "roast_duck",
-      "rice",
-      "pickled_ginger",
-      "boiled_vegetables"
-    ]
+    "weight_n": 446,
+    "weight_s": 510,
+    "price_special": 5,
+    "special_desc": "เพิ่มปริมาณ",
+    "ingredients": ["roast_duck", "rice", "vegetable_boiled", "ginger"]
   },
-  "noodle": {
-    "name_th": "ก๋วยเตี๋ยว",
-    "name_en": "Noodle",
-    "price": 0,
-    "unit": "ชาม",
-    "is_main": false
-  },
-  "boiled_chicken": {
-    "name_th": "ไก่ต้ม",
-    "name_en": "Boiled Chicken",
-    "price": 0,
-    "unit": "ชิ้น",
-    "is_main": false
-  },
-  "boiled_chicken_blood_jelly": {
-    "name_th": "เลือดไก่",
-    "name_en": "Chicken Blood Jelly",
-    "price": 0,
-    "unit": "ชิ้น",
-    "is_main": false
-  },
-  "boiled_egg": {
-    "name_th": "ไข่ต้ม",
-    "name_en": "Boiled Egg",
-    "price": 0,
-    "unit": "ฟอง",
-    "is_main": false
-  },
-  "boiled_vegetables": {
-    "name_th": "ผักลวก",
-    "name_en": "Boiled Vegetables",
-    "price": 0,
-    "unit": "ส่วน",
-    "is_main": false
-  },
-  "chainese_sausage": {
-    "name_th": "กุนเชียง",
-    "name_en": "Chinese Sausage",
-    "price": 0,
-    "unit": "ชิ้น",
-    "is_main": false
-  },
-  "chicken_drumstick": {
-    "name_th": "น่องไก่",
-    "name_en": "Chicken Drumstick",
-    "price": 0,
-    "unit": "ชิ้น",
-    "is_main": false
-  },
-  "chicken_shredded": {
-    "name_th": "ไก่ฉีก",
-    "name_en": "Shredded Chicken",
-    "price": 0,
-    "unit": "ส่วน",
-    "is_main": false
-  },
-  "cucumber": {
-    "name_th": "แตงกวา",
-    "name_en": "Cucumber",
-    "price": 0,
-    "unit": "ชิ้น",
-    "is_main": false
-  },
-  "daikon_radish": {
-    "name_th": "หัวไชเท้า",
-    "name_en": "Daikon Radish",
-    "price": 0,
-    "unit": "ชิ้น",
-    "is_main": false
-  },
-  "fried_chicken": {
-    "name_th": "ไก่ทอด",
-    "name_en": "Fried Chicken",
-    "price": 0,
-    "unit": "ชิ้น",
-    "is_main": false
-  },
-  "fried_tofo": {
-    "name_th": "เต้าหู้ทอด",
-    "name_en": "Fried Tofu",
-    "price": 0,
-    "unit": "ชิ้น",
-    "is_main": false
-  },
-  "grilled_chicken": {
-    "name_th": "ไก่ย่าง",
-    "name_en": "Grilled Chicken",
-    "price": 0,
-    "unit": "ชิ้น",
-    "is_main": false
-  },
-  "minced_pork": {
-    "name_th": "หมูสับ",
-    "name_en": "Minced Pork",
-    "price": 0,
-    "unit": "ส่วน",
-    "is_main": false
-  },
-  "pickled_ginger": {
-    "name_th": "ขิงดอง",
-    "name_en": "Pickled Ginger",
-    "price": 0,
-    "unit": "ส่วน",
-    "is_main": false
-  },
-  "red_pork": {
-    "name_th": "หมูแดง",
-    "name_en": "Red Pork",
-    "price": 0,
-    "unit": "ส่วน",
-    "is_main": false
-  },
-  "rice": {
-    "name_th": "ข้าว",
-    "name_en": "Rice",
-    "price": 0,
-    "unit": "ทัพพี",
-    "is_main": false
-  },
-  "roast_duck": {
-    "name_th": "เป็ดย่าง",
-    "name_en": "Roast Duck",
-    "price": 0,
-    "unit": "ชิ้น",
-    "is_main": false
-  },
-  "unknown": {
-    "name_th": "ไม่ทราบชื่อ",
-    "name_en": "Unknown",
-    "price": 0,
-    "unit": "รายการ",
-    "is_main": false
-  },
-  "red_pork_rice": {
-    "name_th": "ข้าวหมูแดง",
-    "name_en": "Rice with Red Pork",
-    "price": 40,
-    "unit": "จาน",
-    "is_main": true,
-    "ingredients": [
-      "red_pork",
-      "rice",
-      "cucumber"
-    ]
-  }
+
+  "chicken_blood":     {"name_th": "เลือดไก่",   "name_en": "Chicken Blood Jelly", "is_main": false},
+  "chicken_boiled":    {"name_th": "ไก่ต้ม",      "name_en": "Boiled Chicken",      "is_main": false},
+  "chicken_fried":     {"name_th": "ไก่ทอด",      "name_en": "Fried Chicken",       "is_main": false},
+  "chicken_drumstick": {"name_th": "น่องไก่",     "name_en": "Chicken Drumstick",   "is_main": false},
+  "chicken_shredded":  {"name_th": "ไก่ฉีก",      "name_en": "Shredded Chicken",    "is_main": false},
+  "holy_basil":        {"name_th": "กะเพรา",      "name_en": "Holy Basil",          "is_main": false},
+  "minced_pork":       {"name_th": "หมูสับ",      "name_en": "Minced Pork",         "is_main": false},
+  "noodle":            {"name_th": "ก๋วยเตี๋ยว",  "name_en": "Noodle",              "is_main": false},
+  "radish":            {"name_th": "หัวไชเท้า",   "name_en": "Daikon Radish",       "is_main": false},
+  "rice":              {"name_th": "ข้าว",         "name_en": "Rice",                "is_main": false},
+  "roast_duck":        {"name_th": "เป็ดย่าง",    "name_en": "Roast Duck",          "is_main": false},
+  "cucumber":          {"name_th": "แตงกวา",      "name_en": "Cucumber",            "is_main": false},
+  "ginger":            {"name_th": "ขิงดอง",      "name_en": "Pickled Ginger",      "is_main": false},
+  "vegetable_boiled":  {"name_th": "ผักลวก",      "name_en": "Boiled Vegetables",   "is_main": false},
+  "unknown":           {"name_th": "ไม่ทราบชื่อ", "name_en": "Unknown",             "is_main": false}
 }

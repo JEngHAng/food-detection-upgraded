@@ -9,7 +9,7 @@ import io
 from PIL import Image
 from config import UPLOAD_DIR
 
-ROTATE_ANGLE = 90  # ← แก้ตรงนี้เพื่อเปลี่ยนองศา (90, 180, 270)
+ROTATE_ANGLE = 90  # แก้ตรงนี้เพื่อเปลี่ยนองศา (90, 180, 270)
 
 logger = logging.getLogger(__name__)
 
@@ -30,14 +30,15 @@ class PiCamera:
         self._proc = subprocess.Popen([
             "rpicam-vid",
             "-t", "0",
-            "--width", "1080",     # ← แก้ความกว้างเป็น 1920
-            "--height", "1920",    # ← แก้ความสูงเป็น 1080
-            "--framerate", "30",
+            "--width", "1080",
+            "--height", "1920",
+            "--mode", "3280:2464:10:P",  # full sensor FOV ไม่ crop
+            "--framerate", "21",
             "--codec", "mjpeg",
             "--quality", "95",
             "--sharpness", "2.0",
             "--flush",
-            "--output", "-",       # output ออก stdout
+            "--output", "-",
             "--nopreview",
         ], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
 
@@ -50,7 +51,7 @@ class PiCamera:
                 break
             time.sleep(0.3)
 
-        logger.info("✅ PiCamera MJPEG stream ready")
+        logger.info("PiCamera MJPEG stream ready")
 
     def _read_loop(self):
         """อ่าน MJPEG stream จาก stdout แยก frame ด้วย JPEG marker"""
@@ -80,17 +81,17 @@ class PiCamera:
                 break
 
     def _rotate(self, jpeg_bytes: bytes) -> bytes:
-        """หมุน JPEG bytes ตาม ROTATE_ANGLE แล้วคืน bytes ใหม่"""
+        """หมุน JPEG bytes ตาม ROTATE_ANGLE"""
         if not ROTATE_ANGLE:
             return jpeg_bytes
         try:
             img = Image.open(io.BytesIO(jpeg_bytes))
-            img = img.rotate(-ROTATE_ANGLE, expand=True)  # ลบ = หมุนตามเข็ม
+            img = img.rotate(-ROTATE_ANGLE, expand=True)
             buf = io.BytesIO()
             img.save(buf, format="JPEG", quality=95)
             return buf.getvalue()
         except Exception:
-            return jpeg_bytes  # ถ้าพัง ส่ง frame เดิม
+            return jpeg_bytes
 
     def get_frame(self) -> bytes | None:
         with self._lock:
@@ -108,7 +109,7 @@ class PiCamera:
                     rotated = self._rotate(self._frame)
                     with open(path, "wb") as f:
                         f.write(rotated)
-                    logger.info(f"📸 บันทึกภาพสำเร็จ: {filename}")
+                    logger.info(f"บันทึกภาพสำเร็จ: {filename}")
                     return path
             return None
         except Exception as exc:
